@@ -278,26 +278,29 @@ body {
   border-radius: var(--radius);
 }
 
-.btn-share-modal {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-top: 0.5rem;
-  padding: 0.4rem 0.75rem;
-  font-size: 0.85rem;
-  border: 1px solid var(--border);
+.btn-share-overlay {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: none;
   border-radius: var(--radius);
-  background: var(--surface);
+  background: rgba(0, 0, 0, 0.6);
   color: var(--text);
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background 0.15s;
 }
 
-.btn-share-modal:hover {
-  background: var(--border);
+.btn-share-overlay:hover {
+  background: rgba(0, 0, 0, 0.85);
 }
 
-.btn-share-modal svg {
+.btn-share-overlay svg {
   flex-shrink: 0;
 }
 

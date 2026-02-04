@@ -323,6 +323,23 @@
     }
   }
 
+  function getImageUrl(asset) {
+    const base = getApiBase();
+    const imgPath = asset.previewUrl || asset.thumbUrl || '';
+    return imgPath.startsWith('http') ? imgPath : base + (imgPath.startsWith('/') ? '' : '/') + imgPath;
+  }
+
+  async function copyImageLink(asset) {
+    const imageUrl = getImageUrl(asset);
+    try {
+      await navigator.clipboard.writeText(imageUrl);
+      setPaymentStatus('Link skopírovaný.', 'success');
+      setTimeout(function () { setPaymentStatus(''); }, 2000);
+    } catch (_) {
+      setPaymentStatus('Odkaz: ' + imageUrl, 'success');
+    }
+  }
+
   function renderModalContent(asset) {
     if (!asset) return;
     const hasToken = !!getDownloadToken(asset.id);
@@ -344,7 +361,7 @@
       <h2 class="modal-title" id="modalTitle">${escapeHtml(asset.title)}</h2>
       <div class="modal-preview-wrap">
         <img class="modal-preview" src="${escapeAttr(asset.previewUrl || asset.thumbUrl || '')}" alt="${escapeHtml(asset.title)}" />
-        <button type="button" class="btn-share-modal" aria-label="Zdieľať obrázok" title="Zdieľať obrázok">${SHARE_ICON_SVG} Zdieľať obrázok</button>
+        <button type="button" class="btn-share-overlay" aria-label="Skopírovať odkaz na obrázok" title="Skopírovať odkaz na obrázok">${SHARE_ICON_SVG}</button>
       </div>
       <p class="modal-description">${escapeHtml(asset.description || '')}</p>
       <p class="modal-price">${escapeHtml(asset.pricePol)} POL &nbsp;|&nbsp; ${escapeHtml(asset.priceSol)} SOL</p>
@@ -370,7 +387,7 @@
     modalContent.querySelector('.btn-download-asset')?.addEventListener('click', () => {
       downloadAsset(asset);
     });
-    modalContent.querySelector('.btn-share-modal')?.addEventListener('click', () => shareAsset(asset));
+    modalContent.querySelector('.btn-share-overlay')?.addEventListener('click', () => copyImageLink(asset));
   }
 
   function setPaymentStatus(text, className) {
