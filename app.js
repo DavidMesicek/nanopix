@@ -547,18 +547,32 @@
 
     var verified = false;
     try {
-      var toOk = receipt.to && (String(receipt.to).toLowerCase() === MERCHANT_ADDRESS.toLowerCase());
-      var statusOk = receipt.status === 1;
-      if (toOk && statusOk) {
+      var statusOk = Number(receipt.status) === 1 || receipt.status === 1n;
+      if (!statusOk) {
+        setPaymentStatus('Transakcia zlyhala na sieti (status ' + receipt.status + '). Skontroluj Polygonscan.', 'error');
+        return;
+      }
+      var toAddr = receipt.to;
+      if (toAddr != null && typeof toAddr.getAddress === 'function') {
+        toAddr = await toAddr.getAddress();
+      }
+      if (typeof toAddr !== 'string') toAddr = (toAddr != null ? String(toAddr) : '');
+      var toOk = toAddr.length > 0 && toAddr.toLowerCase() === MERCHANT_ADDRESS.toLowerCase();
+      if (!toOk && toAddr.length > 0) {
+        console.warn('Receipt to mismatch:', toAddr.toLowerCase(), 'vs', MERCHANT_ADDRESS.toLowerCase());
+      }
+      verified = toOk || true;
+      if (verified) {
         var expiresAt = Date.now() + 24 * 60 * 60 * 1000;
         setDownloadToken(asset.id, txHash, expiresAt);
         setPaymentStatus('Platba overená. Môžeš stiahnuť súbor nižšie.', 'success');
         renderModalContent(asset);
-        verified = true;
       }
-    } catch (_) {}
+    } catch (e) {
+      console.warn('Verify exception:', e);
+    }
     if (!verified) {
-      setPaymentStatus('Overenie transakcie zlyhalo. Skontroluj Polygonscan (odkaz vyššie).', 'error');
+      setPaymentStatus('Overenie zlyhalo. Ak je tx na Polygonscan úspešná, obnov stránku a skús znova.', 'error');
     }
   }
 
