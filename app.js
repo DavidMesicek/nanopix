@@ -4,10 +4,8 @@
 
   const SITE_NAME = 'NanoPix';
   const MERCHANT_ADDRESS = '0x3533F712F75f1513f728D2280eeaedE0B438bc6a'; // Polygon
-  const MERCHANT_SOL_ADDRESS = '6bursz7njR3RjXLRMsjamJoNjf6pigtMjPC6KpLycGSd'; // Solana
   const POLYGON_CHAIN_ID = 137;
   const POLYGON_CHAIN_ID_HEX = '0x89';
-  const SOLANA_MAINNET = 'https://solana.publicnode.com';
   const COINGECKO_IDS = 'polygon-ecosystem-token';
   const PRICE_CACHE_KEY = 'nanopix_pol_price';
   const PRICE_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
@@ -35,7 +33,6 @@
   let provider = null;
   let signer = null;
   let currentAccount = null;
-  let solanaPublicKey = null;
   let assets = [];
   const downloadTokens = new Map(); // assetId -> { token, expiresAt }
 
@@ -45,9 +42,7 @@
   const tickerEur = el('tickerEur');
   const tickerStale = el('tickerStale');
   const connectPolBtn = el('connectPolBtn');
-  const connectSolBtn = el('connectSolBtn');
   const walletPolInfo = el('walletPolInfo');
-  const walletSolInfo = el('walletSolInfo');
   const galleryGrid = el('galleryGrid');
   const modalOverlay = el('modalOverlay');
   const modalContent = el('modalContent');
@@ -181,12 +176,6 @@
     if (modalOverlay.getAttribute('aria-hidden') === 'false') renderModalContent(getCurrentModalAsset());
   }
 
-  function disconnectSol() {
-    solanaPublicKey = null;
-    updateWalletUI();
-    if (modalOverlay.getAttribute('aria-hidden') === 'false') renderModalContent(getCurrentModalAsset());
-  }
-
   async function refreshPolBalance() {
     if (!walletPolInfo || !provider) {
       if (walletPolInfo) walletPolInfo.textContent = '';
@@ -233,20 +222,7 @@
         connectPolBtn.classList.remove('connected');
       }
     }
-    if (connectSolBtn) {
-      if (solanaPublicKey) {
-        connectSolBtn.textContent = 'Odpojiť SOL';
-        connectSolBtn.classList.add('connected');
-      } else {
-        connectSolBtn.textContent = 'Connect SOL';
-        connectSolBtn.classList.remove('connected');
-      }
-    }
     if (!currentAccount && walletPolInfo) walletPolInfo.textContent = '';
-    if (!solanaPublicKey && walletSolInfo) walletSolInfo.textContent = '';
-    if (solanaPublicKey && walletSolInfo) {
-      walletSolInfo.textContent = solanaPublicKey.slice(0, 6) + '…' + solanaPublicKey.slice(-4);
-    }
     if (currentAccount) {
       refreshPolBalance();
     }
@@ -310,7 +286,7 @@
         </div>
         <div class="card-body">
           <h2 class="card-title">${escapeHtml(asset.title)}</h2>
-          <p class="card-price">${escapeHtml(asset.pricePol)} POL / ${escapeHtml(asset.priceSol)} SOL</p>
+          <p class="card-price">${escapeHtml(asset.pricePol)} POL</p>
           <div class="card-actions">
             <button type="button" class="btn btn-view" data-asset-id="${escapeAttr(asset.id)}">View</button>
           </div>
@@ -446,7 +422,6 @@
     if (!asset) return;
     const hasToken = !!getDownloadToken(asset.id);
     const canBuyPol = currentAccount && signer;
-    const hasSolana = typeof window.solana !== 'undefined';
     let networkOk = false;
     if (provider) {
       provider.getNetwork().then((n) => {
@@ -466,26 +441,21 @@
         <button type="button" class="btn-share-overlay" aria-label="Kopírovať odkaz na tento pohľad (stránka s obrázkom)" title="Kopírovať odkaz – otvorí túto stránku s týmto obrázkom">${SHARE_ICON_SVG}<span class="btn-share-overlay-label">Kopírovať odkaz</span></button>
       </div>
       <p class="modal-description">${escapeHtml(asset.description || '')}</p>
-      <p class="modal-price">${escapeHtml(asset.pricePol)} POL &nbsp;|&nbsp; ${escapeHtml(asset.priceSol)} SOL</p>
+      <p class="modal-price">${escapeHtml(asset.pricePol)} POL</p>
       <div class="modal-actions">
         ${!currentAccount ? '<button type="button" class="btn btn-wallet connect-pol-in-modal">Connect POL</button>' : ''}
-        ${!solanaPublicKey ? '<button type="button" class="btn btn-wallet connect-sol-in-modal">Connect SOL</button>' : ''}
         <button type="button" class="btn btn-buy btn-buy-pol" ${!canBuyPol || hasToken ? 'disabled' : ''} title="Polygon (MetaMask)">Buy with POL</button>
-        <button type="button" class="btn btn-buy btn-buy-sol" ${hasToken ? 'disabled' : ''} title="Solana (Phantom)">Buy with SOL</button>
         ${hasToken ? '<button type="button" class="btn btn-download btn-download-asset">Download</button>' : ''}
       </div>
       <div class="payment-status" id="paymentStatus" style="display:none;"></div>
     `;
 
-    modalContent.querySelector('.connect-in-modal')?.addEventListener('click', () => {
+    modalContent.querySelector('.connect-pol-in-modal')?.addEventListener('click', () => {
       connectWallet();
     });
 
     modalContent.querySelector('.btn-buy-pol')?.addEventListener('click', () => {
       buyWithPol(asset);
-    });
-    modalContent.querySelector('.btn-buy-sol')?.addEventListener('click', () => {
-      buyWithSol(asset);
     });
     modalContent.querySelector('.btn-download-asset')?.addEventListener('click', () => {
       downloadAsset(asset);
@@ -505,36 +475,13 @@
     statusEl.className = 'payment-status' + (className ? ' ' + className : '');
   }
 
-  function setPaymentStatusTx(txHash, network) {
-    network = network || 'polygon';
-    const explorerUrls = {
-      polygon: 'https://polygonscan.com/tx/',
-      solana: 'https://solscan.io/tx/',
-    };
-    const url = (explorerUrls[network] || explorerUrls.polygon) + txHash;
+  function setPaymentStatusTx(txHash) {
+    const url = 'https://polygonscan.com/tx/' + txHash;
     const statusEl = modalContent.querySelector('#paymentStatus');
     if (!statusEl) return;
     statusEl.style.display = 'block';
     statusEl.className = 'payment-status success';
     statusEl.innerHTML = `Tx: <a class="tx-link" href="${escapeAttr(url)}" target="_blank" rel="noopener">${escapeHtml(txHash.slice(0, 10))}…</a>`;
-  }
-
-  async function connectSolana() {
-    if (typeof window.solana === 'undefined') {
-      alert('Phantom (Solana wallet) is required. Please install it.');
-      return false;
-    }
-    try {
-      const resp = await window.solana.connect();
-      solanaPublicKey = resp.publicKey ? resp.publicKey.toString() : null;
-      updateWalletUI();
-      if (modalOverlay.getAttribute('aria-hidden') === 'false') renderModalContent(getCurrentModalAsset());
-      return !!solanaPublicKey;
-    } catch (e) {
-      console.error(e);
-      alert('Failed to connect Phantom: ' + (e.message || String(e)));
-      return false;
-    }
   }
 
   async function buyWithPol(asset) {
@@ -596,75 +543,13 @@
     }
 
     const txHash = receipt.hash;
-    setPaymentStatusTx(txHash, 'polygon');
+    setPaymentStatusTx(txHash);
     setPaymentStatus('Verifying payment with server…', 'pending');
-    await callVerifyAndApplyToken(asset, txHash, currentAccount, 'polygon', POLYGON_CHAIN_ID, 'POL');
+    await callVerifyAndApplyToken(asset, txHash, currentAccount, 'polygon', POLYGON_CHAIN_ID);
   }
 
-  async function buyWithSol(asset) {
-    if (typeof window.solana === 'undefined') {
-      setPaymentStatus('Pre platbu SOL nainštaluj peňaženku Phantom (phantom.app) a obnov stránku.', 'error');
-      return;
-    }
-    if (!solanaPublicKey) {
-      const ok = await connectSolana();
-      if (!ok) return;
-    }
-    const merchant = MERCHANT_SOL_ADDRESS;
-    if (!merchant || !merchant.trim()) {
-      setPaymentStatus('Merchant Solana address not configured.', 'error');
-      return;
-    }
-    const statusEl = modalContent.querySelector('#paymentStatus');
-    statusEl.style.display = 'block';
-
-    const amountSol = parseFloat(String(asset.priceSol || '0'));
-    const lamports = Math.floor(amountSol * 1e9);
-    if (lamports <= 0) {
-      setPaymentStatus('Invalid SOL amount.', 'error');
-      return;
-    }
-
-    const connection = new solanaWeb3.Connection(SOLANA_MAINNET);
-    const fromPubkey = new solanaWeb3.PublicKey(solanaPublicKey);
-    const toPubkey = new solanaWeb3.PublicKey(merchant);
-
-    setPaymentStatus('Preparing transaction…', 'pending');
-    let tx;
-    try {
-      const { blockhash } = await connection.getLatestBlockhash();
-      tx = new solanaWeb3.Transaction().add(
-        solanaWeb3.SystemProgram.transfer({
-          fromPubkey,
-          toPubkey,
-          lamports,
-        })
-      );
-      tx.feePayer = fromPubkey;
-      tx.recentBlockhash = blockhash;
-    } catch (e) {
-      setPaymentStatus('Failed to prepare tx: ' + (e.message || String(e)), 'error');
-      return;
-    }
-
-    setPaymentStatus('Confirm transaction in Phantom…', 'pending');
-    let txHash;
-    try {
-      const signed = await window.solana.signTransaction(tx);
-      txHash = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
-    } catch (e) {
-      setPaymentStatus('Transaction rejected or failed: ' + (e.message || String(e)), 'error');
-      return;
-    }
-
-    setPaymentStatusTx(txHash, 'solana');
-    setPaymentStatus('Verifying payment with server…', 'pending');
-    await callVerifyAndApplyToken(asset, txHash, solanaPublicKey, 'solana', 0, 'SOL');
-  }
-
-  async function callVerifyAndApplyToken(asset, txHash, walletAddress, network, chainId, currency) {
+  async function callVerifyAndApplyToken(asset, txHash, walletAddress, network, chainId) {
     const base = getApiBase();
-    currency = currency || (network === 'solana' ? 'SOL' : 'POL');
     let res;
     try {
       res = await fetch(base + '/api/verify', {
@@ -674,9 +559,9 @@
           txHash,
           assetId: asset.id,
           walletAddress,
-          chainId: chainId || (network === 'polygon' ? POLYGON_CHAIN_ID : 0),
+          chainId: chainId || POLYGON_CHAIN_ID,
           network: network,
-          currency: currency,
+          currency: 'POL',
         }),
       });
     } catch (e) {
@@ -730,14 +615,6 @@
     connectWallet();
   });
 
-  connectSolBtn.addEventListener('click', function () {
-    if (solanaPublicKey) {
-      disconnectSol();
-      return;
-    }
-    connectSolana();
-  });
-
   getEthereumProvider()?.on?.('accountsChanged', async (accounts) => {
     signer = null;
     currentAccount = null;
@@ -775,22 +652,6 @@
     updateWalletUI();
     await updateNetworkDisplay();
     await refreshPolBalance();
-    if (currentModalAsset && modalContent.dataset.assetId === currentModalAsset.id) {
-      renderModalContent(currentModalAsset);
-    }
-  });
-
-  window.solana?.on?.('accountChanged', (key) => {
-    solanaPublicKey = key ? key.toString() : null;
-    updateWalletUI();
-    if (currentModalAsset && modalContent.dataset.assetId === currentModalAsset.id) {
-      renderModalContent(currentModalAsset);
-    }
-  });
-
-  window.solana?.on?.('disconnect', () => {
-    solanaPublicKey = null;
-    updateWalletUI();
     if (currentModalAsset && modalContent.dataset.assetId === currentModalAsset.id) {
       renderModalContent(currentModalAsset);
     }
@@ -836,14 +697,5 @@
       await updateNetworkDisplay();
       await refreshPolBalance();
     }).catch(function () {});
-  }
-
-  if (typeof window.solana !== 'undefined') {
-    try {
-      if (window.solana.isConnected && window.solana.publicKey) {
-        solanaPublicKey = window.solana.publicKey.toString();
-        updateWalletUI();
-      }
-    } catch (_) {}
   }
 })();

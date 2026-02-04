@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NanoPix – Buy images with POL or SOL</title>
+  <title>NanoPix – Buy images with POL (Polygon)</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="header">
     <h1 class="site-title">NanoPix</h1>
-    <p class="site-subtitle">Buy images instantly with POL (Polygon) or SOL (Solana)</p>
+    <p class="site-subtitle">Buy images instantly with POL (Polygon)</p>
     <div class="header-actions">
       <div class="price-ticker" id="priceTicker">
         <span class="ticker-label">POL ≈</span>
@@ -20,10 +20,6 @@
       <div class="wallet-pol">
         <button type="button" class="btn btn-wallet btn-pol" id="connectPolBtn">Connect POL</button>
         <span class="wallet-pol-info" id="walletPolInfo"></span>
-      </div>
-      <div class="wallet-sol">
-        <button type="button" class="btn btn-wallet btn-sol" id="connectSolBtn">Connect SOL</button>
-        <span class="wallet-sol-info" id="walletSolInfo"></span>
       </div>
     </div>
   </header>
@@ -46,83 +42,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
-  <!-- Buffer polyfill for Solana web3.js in browser (must be real Uint8Array) -->
-  <script>
-  (function() {
-    if (typeof window.Buffer !== 'undefined') return;
-    function buildArr(arg, enc, len) {
-      if (typeof arg === 'number') {
-        var u = new Uint8Array(arg);
-        if (enc !== undefined) u.fill(enc);
-        return u;
-      }
-      if (typeof arg === 'string') {
-        if (enc === 'hex') {
-          var h = arg.replace(/^0x/, ''), bytes = [];
-          for (var i = 0; i < h.length; i += 2) bytes.push(parseInt(h.substr(i, 2), 16));
-          return new Uint8Array(bytes);
-        }
-        return new Uint8Array(arg.split('').map(function(c) { return c.charCodeAt(0); }));
-      }
-      if (arg instanceof Uint8Array) return arg;
-      if (arg && arg.buffer instanceof ArrayBuffer) return new Uint8Array(arg);
-      return new Uint8Array(arg || 0);
-    }
-    function B(arg, encodingOrOffset, length) {
-      var arr = buildArr(arg, encodingOrOffset, length);
-      if (!(this instanceof B)) return new B(arg, encodingOrOffset, length);
-      arr.__proto__ = B.prototype;
-      return arr;
-    }
-    B.prototype = Object.create(Uint8Array.prototype);
-    B.from = function(val, enc) {
-      if (val instanceof Uint8Array) return new B(val);
-      if (typeof val === 'string' && enc === 'hex') {
-        var h = val.replace(/^0x/, ''), bytes = [];
-        for (var i = 0; i < h.length; i += 2) bytes.push(parseInt(h.substr(i, 2), 16));
-        return new B(new Uint8Array(bytes));
-      }
-      return new B(val);
-    };
-    B.alloc = function(size, fill) {
-      var b = new B(size);
-      if (fill !== undefined) b.fill(fill);
-      return b;
-    };
-    B.allocUnsafe = function(size) { return new B(size); };
-    B.isBuffer = function(b) { return b instanceof Uint8Array && typeof b.writeBigUInt64LE === 'function'; };
-    B.prototype.slice = function(s, e) { return new B(new Uint8Array(this).slice(s, e)); };
-    B.prototype.reverse = function() {
-      var i = 0, j = this.length - 1, t;
-      while (i < j) { t = this[i]; this[i] = this[j]; this[j] = t; i++; j--; }
-      return this;
-    };
-    B.prototype.toString = function(enc) {
-      if (enc === 'hex') return Array.from(this).map(function(x) { return ('0' + x.toString(16)).slice(-2); }).join('');
-      return String.fromCharCode.apply(null, this);
-    };
-    B.prototype.toJSON = function() { return { type: 'Buffer', data: Array.from(this) }; };
-    B.prototype.writeBigUInt64LE = function(val, off) {
-      off = off || 0;
-      var n = typeof val === 'bigint' ? val : BigInt(Math.floor(val));
-      for (var i = 0; i < 8; i++) {
-        this[off + i] = Number(n & 0xffn);
-        n = n >> 8n;
-      }
-      return off + 8;
-    };
-    B.prototype.writeUInt32LE = function(val, off) {
-      off = off || 0;
-      var n = val >>> 0;
-      this[off] = n & 0xff; this[off + 1] = (n >> 8) & 0xff;
-      this[off + 2] = (n >> 16) & 0xff; this[off + 3] = (n >> 24) & 0xff;
-      return off + 4;
-    };
-    window.Buffer = B;
-    if (typeof global !== 'undefined') global.Buffer = B;
-  })();
-  </script>
-  <script src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>
