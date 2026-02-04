@@ -36,6 +36,7 @@
   const tickerStale = el('tickerStale');
   const connectWalletBtn = el('connectWalletBtn');
   const walletInfo = el('walletInfo');
+  const walletBalanceEl = el('walletBalance');
   const walletNetworkEl = el('walletNetwork');
   const galleryGrid = el('galleryGrid');
   const modalOverlay = el('modalOverlay');
@@ -115,9 +116,11 @@
       if (!accounts || accounts.length === 0) throw new Error('Žiadne účty');
       currentAccount = accounts[0];
       await ensurePolygon();
+      provider = new ethers.BrowserProvider(window.ethereum);
       signer = await provider.getSigner();
       updateWalletUI();
       await updateNetworkDisplay();
+      await refreshPolBalance();
       if (modalOverlay.getAttribute('aria-hidden') === 'false') {
         renderModalContent(getCurrentModalAsset());
       }
@@ -132,12 +135,32 @@
     signer = null;
     provider = null;
     updateWalletUI();
+    if (walletBalanceEl) walletBalanceEl.textContent = '';
     if (walletNetworkEl) {
       walletNetworkEl.textContent = '';
       walletNetworkEl.className = 'wallet-network';
     }
     if (modalOverlay.getAttribute('aria-hidden') === 'false') {
       renderModalContent(getCurrentModalAsset());
+    }
+  }
+
+  async function refreshPolBalance() {
+    if (!walletBalanceEl || !provider || !currentAccount) {
+      if (walletBalanceEl) walletBalanceEl.textContent = '';
+      return;
+    }
+    try {
+      var net = await provider.getNetwork();
+      if (Number(net.chainId) !== POLYGON_CHAIN_ID) {
+        walletBalanceEl.textContent = '';
+        return;
+      }
+      var bal = await provider.getBalance(currentAccount);
+      var polStr = ethers.formatEther(bal);
+      walletBalanceEl.textContent = polStr + ' POL';
+    } catch (_) {
+      walletBalanceEl.textContent = '';
     }
   }
 
@@ -177,9 +200,14 @@
       connectWalletBtn.classList.remove('connected');
       walletInfo.textContent = '';
     }
-    if (!currentAccount && walletNetworkEl) {
-      walletNetworkEl.textContent = '';
-      walletNetworkEl.className = 'wallet-network';
+    if (!currentAccount) {
+      if (walletBalanceEl) walletBalanceEl.textContent = '';
+      if (walletNetworkEl) {
+        walletNetworkEl.textContent = '';
+        walletNetworkEl.className = 'wallet-network';
+      }
+    } else if (currentAccount) {
+      refreshPolBalance();
     }
   }
 
@@ -439,12 +467,15 @@
     statusEl.style.display = 'block';
 
     try {
-      setPaymentStatus('Switching network…', 'pending');
+      setPaymentStatus('Prepnúvam na Polygon…', 'pending');
       await ensurePolygon();
     } catch (e) {
       setPaymentStatus('Pre platbu POL musí byť MetaMask na sieti Polygon. V MetaMaske zvoľ sieť → Polygon Mainnet (prípadne ju najprv pridaj).', 'error');
       return;
     }
+
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
 
     const valueWei = ethers.parseEther(String(asset.pricePol));
     const merchant = MERCHANT_ADDRESS;
@@ -459,9 +490,9 @@
     } catch (_) {}
     if (balanceWei !== undefined) {
       var balStr = ethers.formatEther(balanceWei);
-      setPaymentStatus('Účet ' + currentAccount.slice(0, 8) + '… má ' + balStr + ' POL. Potvrd transakciu v MetaMaske…', 'pending');
+      setPaymentStatus('Účet ' + currentAccount + ' má na Polygon ' + balStr + ' POL. Potvrd transakciu v MetaMaske…', 'pending');
     } else {
-      setPaymentStatus('Confirm transaction in your wallet…', 'pending');
+      setPaymentStatus('Potvrd transakciu v MetaMaske…', 'pending');
     }
     let tx;
     try {
@@ -469,12 +500,7 @@
     } catch (e) {
       var msg = e.message || String(e);
       if (e.code === 'INSUFFICIENT_FUNDS' || msg.indexOf('insufficient funds') !== -1) {
-        msg = 'Pripojený účet ' + currentAccount.slice(0, 6) + '…' + currentAccount.slice(-4) + ' nemá dosť POL.';
-        if (balanceWei !== undefined) {
-          msg += ' Zostatok: ' + ethers.formatEther(balanceWei) + ' POL. Potrebuješ aspoň ' + asset.pricePol + ' POL + plyn. Skontroluj či je v MetaMaske zvolený správny účet (ten s POL).';
-        } else {
-          msg += ' Dopln POL na Polygon alebo zvoľ v MetaMaske účet, ktorý má POL.';
-        }
+        msg = 'Stránka vidí tento účet: ' + currentAccount + '. Zostatok na Polygon: ' + (balanceWei !== undefined ? ethers.formatEther(balanceWei) + ' POL' : '?') + '. Potrebuješ aspoň ' + asset.pricePol + ' POL + plyn. Ak v MetaMaske vidíš iný zostatok, zvoľ v MetaMaske ten účet, ktorý má POL (ikona účtu hore).';
       }
       setPaymentStatus('Transakcia zlyhala: ' + msg, 'error');
       return;
@@ -634,12 +660,13 @@
     provider = currentAccount ? new ethers.BrowserProvider(window.ethereum) : null;
     if (provider && currentAccount) {
       try {
-        const net = await provider.getNetwork();
+        var net = await provider.getNetwork();
         if (Number(net.chainId) === POLYGON_CHAIN_ID) signer = await provider.getSigner();
       } catch (_) {}
     }
     updateWalletUI();
     await updateNetworkDisplay();
+    await refreshPolBalance();
     if (currentModalAsset && modalContent.dataset.assetId === currentModalAsset.id) {
       renderModalContent(currentModalAsset);
     }
@@ -649,7 +676,7 @@
     if (!currentAccount) return;
     provider = new ethers.BrowserProvider(window.ethereum);
     try {
-      const net = await provider.getNetwork();
+      var net = await provider.getNetwork();
       if (Number(net.chainId) === POLYGON_CHAIN_ID) signer = await provider.getSigner();
       else signer = null;
     } catch (_) {
@@ -657,6 +684,7 @@
     }
     updateWalletUI();
     await updateNetworkDisplay();
+    await refreshPolBalance();
     if (currentModalAsset && modalContent.dataset.assetId === currentModalAsset.id) {
       renderModalContent(currentModalAsset);
     }
@@ -689,11 +717,14 @@
       provider = new ethers.BrowserProvider(window.ethereum);
       currentAccount = accounts[0];
       try {
-        const net = await provider.getNetwork();
+        await ensurePolygon();
+        provider = new ethers.BrowserProvider(window.ethereum);
+        var net = await provider.getNetwork();
         if (Number(net.chainId) === POLYGON_CHAIN_ID) signer = await provider.getSigner();
       } catch (_) {}
       updateWalletUI();
       await updateNetworkDisplay();
+      await refreshPolBalance();
     }).catch(function () {});
   }
 })();

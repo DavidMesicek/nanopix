@@ -110,6 +110,11 @@ body {
   text-overflow: ellipsis;
 }
 
+.wallet-balance {
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
 .wallet-network {
   font-size: 0.75rem;
   color: var(--text-muted);
@@ -361,7 +366,7 @@ body {
 
 .payment-status.pending { color: #f59e0b; }
 .payment-status.success { color: var(--accent); }
-.payment-status.error { color: var(--danger); }
+.payment-status.error { color: var(--danger); word-break: break-all; }
 
 .tx-link {
   color: var(--accent);
