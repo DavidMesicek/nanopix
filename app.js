@@ -20,6 +20,16 @@
     blockExplorerUrls: ['https://polygonscan.com/'],
   };
 
+  function getEthereumProvider() {
+    if (typeof window.ethereum === 'undefined') return undefined;
+    const e = window.ethereum;
+    if (e.providers && Array.isArray(e.providers)) {
+      const metaMask = e.providers.find(function (p) { return p.isMetaMask === true; });
+      return metaMask || e.providers[0] || e;
+    }
+    return e;
+  }
+
   const SHARE_ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.82 3.98M15.41 6.51l-6.82 3.98"/></svg>';
 
   let provider = null;
@@ -46,6 +56,18 @@
   function getApiBase() {
     const base = window.location.origin;
     return base.endsWith('/') ? base.slice(0, -1) : base;
+  }
+
+  function getSiteBase() {
+    const path = window.location.pathname || '/';
+    const base = window.location.origin + (path.endsWith('/') ? path : path.replace(/\/[^/]*$/, '/'));
+    return base;
+  }
+
+  function resolveAssetUrl(url) {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('//')) return url;
+    return getSiteBase() + url.replace(/^\//, '');
   }
 
   function loadPrice() {
@@ -105,20 +127,36 @@
     }
   }
 
+  function getConnectErrorMsg(e) {
+    const code = e.code || e.error?.code;
+    const msg = (e.message || String(e)).toLowerCase();
+    if (code === 4001 || msg.includes('user rejected') || msg.includes('user denied')) {
+      return 'Pripojenie bolo zrušené. Schváľ v MetaMask okne (Connect / Pripojiť).';
+    }
+    if (code === 4100 || msg.includes('unauthorized') || msg.includes('locked')) {
+      return 'MetaMask je zamknutý. Odomkni ho (zadaj heslo) a skús znova.';
+    }
+    if (msg.includes('non-ethereum')) {
+      return 'Vyber MetaMask ako peňaženku: v prehliadači klikni na ikonu rozšírenia a zvoľ MetaMask.';
+    }
+    return 'Pripojenie zlyhalo: ' + (e.message || String(e));
+  }
+
   async function connectWallet() {
-    if (typeof window.ethereum === 'undefined') {
-      alert('MetaMask (alebo iná Web3 peňaženka) je potrebná. Nainštaluj ju.');
+    const eth = getEthereumProvider();
+    if (!eth) {
+      alert('MetaMask nie je nainštalovaný. Nainštaluj rozšírenie MetaMask a obnov stránku.');
       return;
     }
     try {
-      provider = new ethers.BrowserProvider(window.ethereum);
+      provider = new ethers.BrowserProvider(eth);
       await provider.send('eth_requestAccounts', []);
       signer = await provider.getSigner();
       currentAccount = (await signer.getAddress()).toLowerCase();
       updateWalletUI();
       try {
         await ensurePolygon();
-        provider = new ethers.BrowserProvider(window.ethereum);
+        provider = new ethers.BrowserProvider(eth);
         signer = await provider.getSigner();
         currentAccount = (await signer.getAddress()).toLowerCase();
       } catch (switchErr) {
@@ -131,7 +169,7 @@
       }
     } catch (e) {
       console.error(e);
-      alert('Pripojenie zlyhalo: ' + (e.message || String(e)));
+      alert(getConnectErrorMsg(e));
     }
   }
 
@@ -247,7 +285,7 @@
 
   async function loadAssets() {
     try {
-      const r = await fetch('assets.json?v=2');
+      const r = await fetch(getSiteBase() + 'assets.json?v=2');
       if (!r.ok) throw new Error('Catalog load failed');
       const data = await r.json();
       assets = Array.isArray(data) ? data : (data.assets || data.items || []);
@@ -267,7 +305,7 @@
       card.className = 'card';
       card.innerHTML = `
         <div class="card-image-wrap">
-          <img class="card-image" src="${escapeAttr(asset.thumbUrl || asset.previewUrl || '')}" alt="${escapeAttr(asset.title)}" loading="lazy" />
+          <img class="card-image" src="${escapeAttr(resolveAssetUrl(asset.thumbUrl || asset.previewUrl || ''))}" alt="${escapeAttr(asset.title)}" loading="lazy" />
           <button type="button" class="btn-share-card" aria-label="Kopírovať odkaz na obrázok" title="Kopírovať odkaz na obrázok">${SHARE_ICON_SVG}</button>
         </div>
         <div class="card-body">
@@ -424,7 +462,7 @@
     modalContent.innerHTML = `
       <h2 class="modal-title" id="modalTitle">${escapeHtml(asset.title)}</h2>
       <div class="modal-preview-wrap">
-        <img class="modal-preview" src="${escapeAttr(asset.previewUrl || asset.thumbUrl || '')}" alt="${escapeHtml(asset.title)}" />
+        <img class="modal-preview" src="${escapeAttr(resolveAssetUrl(asset.previewUrl || asset.thumbUrl || ''))}" alt="${escapeHtml(asset.title)}" />
         <button type="button" class="btn-share-overlay" aria-label="Kopírovať odkaz na tento pohľad (stránka s obrázkom)" title="Kopírovať odkaz – otvorí túto stránku s týmto obrázkom">${SHARE_ICON_SVG}<span class="btn-share-overlay-label">Kopírovať odkaz</span></button>
       </div>
       <p class="modal-description">${escapeHtml(asset.description || '')}</p>
@@ -515,7 +553,7 @@
       return;
     }
 
-    provider = new ethers.BrowserProvider(window.ethereum);
+    provider = new ethers.BrowserProvider(getEthereumProvider());
     signer = await provider.getSigner();
     currentAccount = (await signer.getAddress()).toLowerCase();
 
@@ -700,10 +738,11 @@
     connectSolana();
   });
 
-  window.ethereum?.on?.('accountsChanged', async (accounts) => {
+  getEthereumProvider()?.on?.('accountsChanged', async (accounts) => {
     signer = null;
     currentAccount = null;
-    provider = accounts && accounts[0] ? new ethers.BrowserProvider(window.ethereum) : null;
+    const eth = getEthereumProvider();
+    provider = accounts && accounts[0] && eth ? new ethers.BrowserProvider(eth) : null;
     if (provider) {
       try {
         var net = await provider.getNetwork();
@@ -721,9 +760,11 @@
     }
   });
 
-  window.ethereum?.on?.('chainChanged', async () => {
+  getEthereumProvider()?.on?.('chainChanged', async () => {
     if (!currentAccount) return;
-    provider = new ethers.BrowserProvider(window.ethereum);
+    const eth = getEthereumProvider();
+    if (!eth) return;
+    provider = new ethers.BrowserProvider(eth);
     try {
       var net = await provider.getNetwork();
       if (Number(net.chainId) === POLYGON_CHAIN_ID) signer = await provider.getSigner();
@@ -778,13 +819,13 @@
     });
   }
 
-  if (typeof window.ethereum !== 'undefined') {
-    window.ethereum.request({ method: 'eth_accounts' }).then(async function (accounts) {
+  if (ethInit) {
+    ethInit.request({ method: 'eth_accounts' }).then(async function (accounts) {
       if (!accounts || accounts.length === 0) return;
-      provider = new ethers.BrowserProvider(window.ethereum);
+      provider = new ethers.BrowserProvider(getEthereumProvider());
       try {
         await ensurePolygon();
-        provider = new ethers.BrowserProvider(window.ethereum);
+        provider = new ethers.BrowserProvider(getEthereumProvider());
         var net = await provider.getNetwork();
         if (Number(net.chainId) === POLYGON_CHAIN_ID) {
           signer = await provider.getSigner();
