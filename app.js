@@ -5,7 +5,6 @@
   const SITE_NAME = 'NanoPix';
   const MERCHANT_ADDRESS = '0x3533F712F75f1513f728D2280eeaedE0B438bc6a'; // Polygon
   const MERCHANT_SOL_ADDRESS = '6bursz7njR3RjXLRMsjamJoNjf6pigtMjPC6KpLycGSd'; // Solana
-  const MERCHANT_TRX_ADDRESS = 'TAhKGQVs5sXNGQrxbCqucHf23rezkwAo7X'; // Tron
   const POLYGON_CHAIN_ID = 137;
   const POLYGON_CHAIN_ID_HEX = '0x89';
   const SOLANA_MAINNET = 'https://solana.publicnode.com';
@@ -25,8 +24,6 @@
   let signer = null;
   let currentAccount = null;
   let solanaPublicKey = null;
-  let tronAddress = null;
-  let tronWeb = null;
   let assets = [];
   const downloadTokens = new Map(); // assetId -> { token, expiresAt }
 
@@ -127,7 +124,6 @@
   }
 
   function updateWalletUI() {
-    const hasAny = currentAccount || solanaPublicKey || tronAddress;
     if (currentAccount) {
       connectWalletBtn.textContent = 'Connected (EVM)';
       connectWalletBtn.classList.add('connected');
@@ -136,10 +132,6 @@
       connectWalletBtn.textContent = 'Connected (Solana)';
       connectWalletBtn.classList.add('connected');
       walletInfo.textContent = solanaPublicKey.slice(0, 6) + '…' + solanaPublicKey.slice(-4);
-    } else if (tronAddress) {
-      connectWalletBtn.textContent = 'Connected (Tron)';
-      connectWalletBtn.classList.add('connected');
-      walletInfo.textContent = tronAddress.slice(0, 6) + '…' + tronAddress.slice(-4);
     } else {
       connectWalletBtn.textContent = 'Connect Wallet';
       connectWalletBtn.classList.remove('connected');
@@ -202,7 +194,7 @@
         <img class="card-image" src="${escapeAttr(asset.thumbUrl || asset.previewUrl || '')}" alt="${escapeAttr(asset.title)}" loading="lazy" />
         <div class="card-body">
           <h2 class="card-title">${escapeHtml(asset.title)}</h2>
-          <p class="card-price">${escapeHtml(asset.pricePol)} POL / ${escapeHtml(asset.priceSol)} SOL / ${escapeHtml(asset.priceTrx)} TRX</p>
+          <p class="card-price">${escapeHtml(asset.pricePol)} POL / ${escapeHtml(asset.priceSol)} SOL</p>
           <div class="card-actions">
             <button type="button" class="btn btn-view" data-asset-id="${escapeAttr(asset.id)}">View</button>
           </div>
@@ -245,7 +237,6 @@
     const hasToken = !!getDownloadToken(asset.id);
     const canBuyPol = currentAccount && signer;
     const hasSolana = typeof window.solana !== 'undefined';
-    const hasTron = typeof window.tronLink !== 'undefined';
     let networkOk = false;
     if (provider) {
       provider.getNetwork().then((n) => {
@@ -262,12 +253,11 @@
       <h2 class="modal-title" id="modalTitle">${escapeHtml(asset.title)}</h2>
       <img class="modal-preview" src="${escapeAttr(asset.previewUrl || asset.thumbUrl || '')}" alt="${escapeHtml(asset.title)}" />
       <p class="modal-description">${escapeHtml(asset.description || '')}</p>
-      <p class="modal-price">${escapeHtml(asset.pricePol)} POL &nbsp;|&nbsp; ${escapeHtml(asset.priceSol)} SOL &nbsp;|&nbsp; ${escapeHtml(asset.priceTrx)} TRX</p>
+      <p class="modal-price">${escapeHtml(asset.pricePol)} POL &nbsp;|&nbsp; ${escapeHtml(asset.priceSol)} SOL</p>
       <div class="modal-actions">
-        ${!currentAccount && !solanaPublicKey && !tronAddress ? '<button type="button" class="btn btn-wallet connect-in-modal">Connect Wallet</button>' : ''}
+        ${!currentAccount && !solanaPublicKey ? '<button type="button" class="btn btn-wallet connect-in-modal">Connect Wallet</button>' : ''}
         <button type="button" class="btn btn-buy btn-buy-pol" ${!canBuyPol || hasToken ? 'disabled' : ''} title="Polygon (MetaMask)">Buy with POL</button>
         <button type="button" class="btn btn-buy btn-buy-sol" ${hasToken ? 'disabled' : ''} title="Solana (Phantom)">Buy with SOL</button>
-        <button type="button" class="btn btn-buy btn-buy-trx" ${hasToken ? 'disabled' : ''} title="Tron (TronLink)">Buy with TRX</button>
         ${hasToken ? '<button type="button" class="btn btn-download btn-download-asset">Download</button>' : ''}
       </div>
       <div class="payment-status" id="paymentStatus" style="display:none;"></div>
@@ -283,10 +273,6 @@
     modalContent.querySelector('.btn-buy-sol')?.addEventListener('click', () => {
       buyWithSol(asset);
     });
-    modalContent.querySelector('.btn-buy-trx')?.addEventListener('click', () => {
-      buyWithTrx(asset);
-    });
-
     modalContent.querySelector('.btn-download-asset')?.addEventListener('click', () => {
       downloadAsset(asset);
     });
@@ -305,7 +291,6 @@
     const explorerUrls = {
       polygon: 'https://polygonscan.com/tx/',
       solana: 'https://solscan.io/tx/',
-      tron: 'https://tronscan.org/#/transaction/',
     };
     const url = (explorerUrls[network] || explorerUrls.polygon) + txHash;
     const statusEl = modalContent.querySelector('#paymentStatus');
@@ -329,28 +314,6 @@
     } catch (e) {
       console.error(e);
       alert('Failed to connect Phantom: ' + (e.message || String(e)));
-      return false;
-    }
-  }
-
-  async function connectTron() {
-    if (typeof window.tronLink === 'undefined') {
-      alert('TronLink is required. Please install it.');
-      return false;
-    }
-    try {
-      const res = await window.tronLink.request({ method: 'tron_requestAccounts' });
-      if (res.code === 200 && res.address) {
-        tronAddress = res.address;
-        tronWeb = window.tronLink.tronWeb || null;
-        updateWalletUI();
-        if (modalOverlay.getAttribute('aria-hidden') === 'false') renderModalContent(getCurrentModalAsset());
-        return true;
-      }
-      throw new Error(res.message || 'TronLink connection failed');
-    } catch (e) {
-      console.error(e);
-      alert('Failed to connect TronLink: ' + (e.message || String(e)));
       return false;
     }
   }
@@ -383,7 +346,11 @@
     try {
       tx = await signer.sendTransaction({ to: merchant, value: valueWei });
     } catch (e) {
-      setPaymentStatus('Transaction rejected or failed: ' + (e.message || String(e)), 'error');
+      var msg = e.message || String(e);
+      if (e.code === 'INSUFFICIENT_FUNDS' || msg.indexOf('insufficient funds') !== -1) {
+        msg = 'Nedostatočný zostatok POL (vrátane poplatku za plyn). Dopln POL v peňaženke na Polygon.';
+      }
+      setPaymentStatus('Transakcia zlyhala: ' + msg, 'error');
       return;
     }
 
@@ -461,51 +428,6 @@
     setPaymentStatusTx(txHash, 'solana');
     setPaymentStatus('Verifying payment with server…', 'pending');
     await callVerifyAndApplyToken(asset, txHash, solanaPublicKey, 'solana', 0);
-  }
-
-  async function buyWithTrx(asset) {
-    if (typeof window.tronLink === 'undefined') {
-      setPaymentStatus('Pre platbu TRX nainštaluj rozšírenie TronLink (tronlink.org) a obnov stránku.', 'error');
-      return;
-    }
-    if (!tronAddress || !tronWeb) {
-      const ok = await connectTron();
-      if (!ok) return;
-    }
-    const merchant = MERCHANT_TRX_ADDRESS;
-    if (!merchant || !merchant.trim()) {
-      setPaymentStatus('Merchant Tron address not configured.', 'error');
-      return;
-    }
-    const statusEl = modalContent.querySelector('#paymentStatus');
-    statusEl.style.display = 'block';
-
-    const amountTrx = parseFloat(String(asset.priceTrx || '0'));
-    const amountSun = Math.floor(amountTrx * 1e6);
-    if (amountSun <= 0) {
-      setPaymentStatus('Invalid TRX amount.', 'error');
-      return;
-    }
-
-    setPaymentStatus('Confirm transaction in TronLink…', 'pending');
-    let txHash;
-    try {
-      const tx = await tronWeb.transactionBuilder.sendTrx(merchant, amountSun, tronAddress);
-      const signed = await tronWeb.trx.sign(tx);
-      const result = await tronWeb.trx.sendRawTransaction(signed);
-      if (!result.result || result.result !== true) {
-        throw new Error(result.message || 'Broadcast failed');
-      }
-      txHash = result.txid || result.transaction?.txID;
-      if (!txHash) throw new Error('No tx id returned');
-    } catch (e) {
-      setPaymentStatus('Transaction rejected or failed: ' + (e.message || String(e)), 'error');
-      return;
-    }
-
-    setPaymentStatusTx(txHash, 'tron');
-    setPaymentStatus('Verifying payment with server…', 'pending');
-    await callVerifyAndApplyToken(asset, txHash, tronAddress, 'tron', 0);
   }
 
   async function callVerifyAndApplyToken(asset, txHash, walletAddress, network, chainId) {

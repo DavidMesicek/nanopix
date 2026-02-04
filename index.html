@@ -40,6 +40,63 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+  <!-- Buffer polyfill for Solana web3.js in browser -->
+  <script>
+  (function() {
+    if (typeof window.Buffer !== 'undefined') return;
+    function B(arg, encodingOrOffset, length) {
+      if (!(this instanceof B)) return new B(arg, encodingOrOffset, length);
+      if (typeof arg === 'number') {
+        this._u = new Uint8Array(arg);
+        if (encodingOrOffset !== undefined) this._u.fill(encodingOrOffset);
+        return this;
+      }
+      if (typeof arg === 'string') {
+        if (encodingOrOffset === 'hex') {
+          var h = arg.replace(/^0x/, ''), bytes = [];
+          for (var i = 0; i < h.length; i += 2) bytes.push(parseInt(h.substr(i, 2), 16));
+          this._u = new Uint8Array(bytes);
+        } else {
+          this._u = new Uint8Array(arg.split('').map(function(c) { return c.charCodeAt(0); }));
+        }
+        return this;
+      }
+      if (arg instanceof Uint8Array) { this._u = arg; return this; }
+      if (arg && arg.buffer instanceof ArrayBuffer) { this._u = new Uint8Array(arg); return this; }
+      this._u = new Uint8Array(arg || 0);
+      return this;
+    }
+    B.from = function(val, enc, len) {
+      if (val instanceof Uint8Array) return new B(val);
+      if (typeof val === 'string' && enc === 'hex') {
+        var h = val.replace(/^0x/, ''), bytes = [];
+        for (var i = 0; i < h.length; i += 2) bytes.push(parseInt(h.substr(i, 2), 16));
+        return new B(new Uint8Array(bytes));
+      }
+      if (typeof val === 'string') return new B(val);
+      if (val instanceof ArrayBuffer) return new B(new Uint8Array(val));
+      if (val && val.buffer instanceof ArrayBuffer) return new B(new Uint8Array(val));
+      return new B(val);
+    };
+    B.alloc = function(size, fill) {
+      var b = new B(size);
+      if (fill !== undefined) b._u.fill(fill);
+      return b;
+    };
+    B.allocUnsafe = function(size) { return new B(size); };
+    B.isBuffer = function(b) { return b && b._u instanceof Uint8Array; };
+    B.prototype.slice = function(s, e) { var o = new B(this._u.slice(s, e)); return o; };
+    B.prototype.toString = function(enc) {
+      if (enc === 'hex') return Array.from(this._u).map(function(x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+      return String.fromCharCode.apply(null, this._u);
+    };
+    B.prototype.toJSON = function() { return { type: 'Buffer', data: Array.from(this._u) }; };
+    Object.defineProperty(B.prototype, 'length', { get: function() { return this._u.length; } });
+    Object.defineProperty(B.prototype, 'buffer', { get: function() { return this._u.buffer; } });
+    window.Buffer = B;
+    if (typeof global !== 'undefined') global.Buffer = B;
+  })();
+  </script>
   <script src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
   <script src="app.js"></script>
 </body>
