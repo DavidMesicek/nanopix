@@ -547,10 +547,9 @@
 
     var verified = false;
     try {
-      var toOk = (receipt.to && receipt.to.toLowerCase() === MERCHANT_ADDRESS.toLowerCase());
-      var valueOk = receipt.value >= valueWei;
+      var toOk = receipt.to && (String(receipt.to).toLowerCase() === MERCHANT_ADDRESS.toLowerCase());
       var statusOk = receipt.status === 1;
-      if (toOk && valueOk && statusOk) {
+      if (toOk && statusOk) {
         var expiresAt = Date.now() + 24 * 60 * 60 * 1000;
         setDownloadToken(asset.id, txHash, expiresAt);
         setPaymentStatus('Platba overená. Môžeš stiahnuť súbor nižšie.', 'success');
