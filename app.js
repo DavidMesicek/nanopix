@@ -265,7 +265,7 @@
       card.innerHTML = `
         <div class="card-image-wrap">
           <img class="card-image" src="${escapeAttr(asset.thumbUrl || asset.previewUrl || '')}" alt="${escapeAttr(asset.title)}" loading="lazy" />
-          <button type="button" class="btn-share-card" aria-label="Zdieľať obrázok" title="Zdieľať obrázok">${SHARE_ICON_SVG}</button>
+          <button type="button" class="btn-share-card" aria-label="Kopírovať odkaz na obrázok" title="Kopírovať odkaz na obrázok">${SHARE_ICON_SVG}</button>
         </div>
         <div class="card-body">
           <h2 class="card-title">${escapeHtml(asset.title)}</h2>
@@ -276,7 +276,7 @@
         </div>
       `;
       card.querySelector('.btn-view').addEventListener('click', () => openModal(asset));
-      card.querySelector('.btn-share-card').addEventListener('click', (e) => { e.stopPropagation(); shareAsset(asset); });
+      card.querySelector('.btn-share-card').addEventListener('click', (e) => { e.stopPropagation(); copyImageLink(asset); });
       galleryGrid.appendChild(card);
     });
   }
@@ -308,49 +308,6 @@
     return String(s ?? '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  async function shareAsset(asset) {
-    const base = getApiBase();
-    const imgPath = asset.previewUrl || asset.thumbUrl || '';
-    const imageUrl = imgPath.startsWith('http') ? imgPath : base + (imgPath.startsWith('/') ? '' : '/') + imgPath;
-    const title = asset.title || 'Obrázok';
-    const text = asset.description || '';
-
-    try {
-      if (navigator.share && navigator.canShare) {
-        try {
-          const res = await fetch(imageUrl, { mode: 'cors' });
-          if (res.ok) {
-            const blob = await res.blob();
-            const file = new File([blob], (asset.filename || asset.id || 'image') + '.png', { type: blob.type || 'image/png' });
-            if (navigator.canShare({ files: [file] })) {
-              await navigator.share({ files: [file], title: title });
-              return;
-            }
-          }
-        } catch (_) {}
-        await navigator.share({ url: imageUrl, title: title, text: text });
-        return;
-      }
-    } catch (e) {
-      if (e.name === 'AbortError') return;
-    }
-    try {
-      await navigator.clipboard.writeText(imageUrl);
-      showShareFeedback('Link na obrázok skopírovaný do schránky.');
-    } catch (_) {
-      window.open(imageUrl, '_blank');
-    }
-  }
-
-  function showShareFeedback(msg) {
-    if (modalOverlay.getAttribute('aria-hidden') === 'false' && modalContent.querySelector('#paymentStatus')) {
-      setPaymentStatus(msg, 'success');
-      setTimeout(function () { setPaymentStatus(''); }, 2000);
-    } else {
-      alert(msg);
-    }
-  }
-
   function getImageUrl(asset) {
     const base = getApiBase();
     const imgPath = asset.previewUrl || asset.thumbUrl || '';
@@ -361,10 +318,18 @@
     const imageUrl = getImageUrl(asset);
     try {
       await navigator.clipboard.writeText(imageUrl);
-      setPaymentStatus('Link skopírovaný.', 'success');
-      setTimeout(function () { setPaymentStatus(''); }, 2000);
+      if (modalOverlay.getAttribute('aria-hidden') === 'false' && modalContent.querySelector('#paymentStatus')) {
+        setPaymentStatus('Odkaz na obrázok skopírovaný.', 'success');
+        setTimeout(function () { setPaymentStatus(''); }, 2000);
+      } else {
+        alert('Odkaz na obrázok skopírovaný.');
+      }
     } catch (_) {
-      setPaymentStatus('Odkaz: ' + imageUrl, 'success');
+      if (modalOverlay.getAttribute('aria-hidden') === 'false' && modalContent.querySelector('#paymentStatus')) {
+        setPaymentStatus('Odkaz: ' + imageUrl, 'success');
+      } else {
+        alert('Odkaz: ' + imageUrl);
+      }
     }
   }
 
@@ -389,7 +354,7 @@
       <h2 class="modal-title" id="modalTitle">${escapeHtml(asset.title)}</h2>
       <div class="modal-preview-wrap">
         <img class="modal-preview" src="${escapeAttr(asset.previewUrl || asset.thumbUrl || '')}" alt="${escapeHtml(asset.title)}" />
-        <button type="button" class="btn-share-overlay" aria-label="Skopírovať odkaz na obrázok" title="Skopírovať odkaz na obrázok">${SHARE_ICON_SVG}<span class="btn-share-overlay-label">Kopírovať link</span></button>
+        <button type="button" class="btn-share-overlay" aria-label="Kopírovať odkaz na obrázok" title="Kopírovať odkaz na obrázok">${SHARE_ICON_SVG}<span class="btn-share-overlay-label">Kopírovať odkaz</span></button>
       </div>
       <p class="modal-description">${escapeHtml(asset.description || '')}</p>
       <p class="modal-price">${escapeHtml(asset.pricePol)} POL &nbsp;|&nbsp; ${escapeHtml(asset.priceSol)} SOL</p>
