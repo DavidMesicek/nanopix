@@ -544,62 +544,37 @@
 
     const txHash = receipt.hash;
     setPaymentStatusTx(txHash);
-    setPaymentStatus('Verifying payment with server…', 'pending');
-    await callVerifyAndApplyToken(asset, txHash, currentAccount, 'polygon', POLYGON_CHAIN_ID);
-  }
 
-  async function callVerifyAndApplyToken(asset, txHash, walletAddress, network, chainId) {
-    const base = getApiBase();
-    let res;
+    var verified = false;
     try {
-      res = await fetch(base + '/api/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          txHash,
-          assetId: asset.id,
-          walletAddress,
-          chainId: chainId || POLYGON_CHAIN_ID,
-          network: network,
-          currency: 'POL',
-        }),
-      });
-    } catch (e) {
-      setPaymentStatus('Backend unavailable. Please try again later.', 'error');
-      return;
+      var toOk = (receipt.to && receipt.to.toLowerCase() === MERCHANT_ADDRESS.toLowerCase());
+      var valueOk = receipt.value >= valueWei;
+      var statusOk = receipt.status === 1;
+      if (toOk && valueOk && statusOk) {
+        var expiresAt = Date.now() + 24 * 60 * 60 * 1000;
+        setDownloadToken(asset.id, txHash, expiresAt);
+        setPaymentStatus('Platba overená. Môžeš stiahnuť súbor nižšie.', 'success');
+        renderModalContent(asset);
+        verified = true;
+      }
+    } catch (_) {}
+    if (!verified) {
+      setPaymentStatus('Overenie transakcie zlyhalo. Skontroluj Polygonscan (odkaz vyššie).', 'error');
     }
-    if (!res.ok) {
-      const errText = await res.text();
-      setPaymentStatus('Verification failed: ' + (errText || res.status), 'error');
-      return;
-    }
-    let data;
-    try {
-      data = await res.json();
-    } catch (_) {
-      setPaymentStatus('Invalid response from server.', 'error');
-      return;
-    }
-    const token = data.downloadToken;
-    const expiresAt = data.expiresAt || null;
-    if (!token) {
-      setPaymentStatus('Server did not return a download token.', 'error');
-      return;
-    }
-    setDownloadToken(asset.id, token, expiresAt);
-    setPaymentStatus('Purchase confirmed. You can download below.', 'success');
-    renderModalContent(asset);
   }
 
   function downloadAsset(asset) {
     const token = getDownloadToken(asset.id);
     if (!token) {
-      alert('Download link expired or invalid. Please purchase again.');
+      alert('Stiahnutie vypršalo alebo neplatný nákup. Zaplať znova.');
       return;
     }
-    const base = getApiBase();
-    const url = base + '/api/download?token=' + encodeURIComponent(token);
-    window.open(url, '_self');
+    var url = resolveAssetUrl(asset.downloadUrl || asset.previewUrl || asset.thumbUrl || '');
+    if (!url) {
+      alert('Pre tento obrázok nie je nastavená cesta na stiahnutie.');
+      return;
+    }
+    window.open(url, '_blank');
   }
 
   modalClose.addEventListener('click', closeModal);
