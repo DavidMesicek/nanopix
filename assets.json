@@ -1,0 +1,102 @@
+[
+  {
+    "id": "demo-1",
+    "title": "Sunset Dunes",
+    "pricePol": "0.01",
+    "thumbUrl": "https://placehold.co/400x300/1a1a2e/22c55e?text=1",
+    "previewUrl": "https://placehold.co/800x500/1a1a2e/22c55e?text=1",
+    "description": "Minimal desert landscape at golden hour.",
+    "tags": ["nature", "landscape"],
+    "filename": "sunset-dunes.png"
+  },
+  {
+    "id": "demo-2",
+    "title": "Neon Grid",
+    "pricePol": "0.02",
+    "thumbUrl": "https://placehold.co/400x300/1a1a2e/6366f1?text=2",
+    "previewUrl": "https://placehold.co/800x500/1a1a2e/6366f1?text=2",
+    "description": "Abstract grid pattern in neon colors.",
+    "tags": ["abstract", "digital"],
+    "filename": "neon-grid.png"
+  },
+  {
+    "id": "demo-3",
+    "title": "Mountain Peak",
+    "pricePol": "0.05",
+    "thumbUrl": "https://placehold.co/400x300/1a1a2e/eab308?text=3",
+    "previewUrl": "https://placehold.co/800x500/1a1a2e/eab308?text=3",
+    "description": "Snow-capped peak at dawn.",
+    "tags": ["nature", "mountains"],
+    "filename": "mountain-peak.png"
+  },
+  {
+    "id": "demo-4",
+    "title": "Circuit Lines",
+    "pricePol": "0.01",
+    "thumbUrl": "https://placehold.co/400x300/1a1a2e/f43f5e?text=4",
+    "previewUrl": "https://placehold.co/800x500/1a1a2e/f43f5e?text=4",
+    "description": "Tech-inspired circuit board aesthetic.",
+    "tags": ["tech", "abstract"],
+    "filename": "circuit-lines.png"
+  },
+  {
+    "id": "demo-5",
+    "title": "Ocean Wave",
+    "pricePol": "0.03",
+    "thumbUrl": "https://placehold.co/400x300/1a1a2e/0ea5e9?text=5",
+    "previewUrl": "https://placehold.co/800x500/1a1a2e/0ea5e9?text=5",
+    "description": "Deep blue wave detail.",
+    "tags": ["nature", "ocean"],
+    "filename": "ocean-wave.png"
+  },
+  {
+    "id": "demo-6",
+    "title": "Urban Night",
+    "pricePol": "0.02",
+    "thumbUrl": "https://placehold.co/400x300/1a1a2e/a855f7?text=6",
+    "previewUrl": "https://placehold.co/800x500/1a1a2e/a855f7?text=6",
+    "description": "City lights after dark.",
+    "tags": ["urban", "night"],
+    "filename": "urban-night.png"
+  },
+  {
+    "id": "demo-7",
+    "title": "Leaf Macro",
+    "pricePol": "0.01",
+    "thumbUrl": "https://placehold.co/400x300/1a1a2e/84cc16?text=7",
+    "previewUrl": "https://placehold.co/800x500/1a1a2e/84cc16?text=7",
+    "description": "Close-up leaf texture.",
+    "tags": ["nature", "macro"],
+    "filename": "leaf-macro.png"
+  },
+  {
+    "id": "demo-8",
+    "title": "Retro Signal",
+    "pricePol": "0.04",
+    "thumbUrl": "https://placehold.co/400x300/1a1a2e/f97316?text=8",
+    "previewUrl": "https://placehold.co/800x500/1a1a2e/f97316?text=8",
+    "description": "Vintage broadcast style graphic.",
+    "tags": ["retro", "digital"],
+    "filename": "retro-signal.png"
+  },
+  {
+    "id": "demo-9",
+    "title": "Frost Pattern",
+    "pricePol": "0.02",
+    "thumbUrl": "https://placehold.co/400x300/1a1a2e/06b6d4?text=9",
+    "previewUrl": "https://placehold.co/800x500/1a1a2e/06b6d4?text=9",
+    "description": "Ice crystal patterns on glass.",
+    "tags": ["nature", "winter"],
+    "filename": "frost-pattern.png"
+  },
+  {
+    "id": "demo-10",
+    "title": "Minimal Dot",
+    "pricePol": "0.01",
+    "thumbUrl": "https://placehold.co/400x300/1a1a2e/64748b?text=10",
+    "previewUrl": "https://placehold.co/800x500/1a1a2e/64748b?text=10",
+    "description": "Single dot on neutral background.",
+    "tags": ["minimal", "abstract"],
+    "filename": "minimal-dot.png"
+  }
+]

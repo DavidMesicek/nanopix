@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NanoPix – Buy images instantly with POL (Polygon)</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="header">
+    <h1 class="site-title">NanoPix</h1>
+    <p class="site-subtitle">Buy images instantly with POL (Polygon)</p>
+    <div class="header-actions">
+      <div class="price-ticker" id="priceTicker">
+        <span class="ticker-label">POL ≈</span>
+        <span class="ticker-usd" id="tickerUsd">—</span>
+        <span class="ticker-eur" id="tickerEur">—</span>
+        <span class="ticker-stale" id="tickerStale"></span>
+      </div>
+      <button type="button" class="btn btn-wallet" id="connectWalletBtn">Connect Wallet</button>
+      <span class="wallet-info" id="walletInfo"></span>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="gallery" id="gallery">
+      <div class="gallery-grid" id="galleryGrid">
+        <!-- Filled by JS -->
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-overlay" id="modalOverlay" aria-hidden="true">
+    <div class="modal" id="assetModal" role="dialog" aria-labelledby="modalTitle">
+      <button type="button" class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+      <div class="modal-content" id="modalContent">
+        <!-- Asset detail filled by JS -->
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
