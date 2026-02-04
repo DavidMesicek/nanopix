@@ -318,10 +318,10 @@
 
     function done() {
       if (modalOverlay.getAttribute('aria-hidden') === 'false' && modalContent.querySelector('#paymentStatus')) {
-        setPaymentStatus('Odkaz skopírovaný (len text linku).', 'success');
+        setPaymentStatus('Odkaz skopírovaný (len text).', 'success');
         setTimeout(function () { setPaymentStatus(''); }, 2500);
       } else {
-        alert('Odkaz skopírovaný (len text linku).');
+        alert('Odkaz skopírovaný (len text).');
       }
     }
 
@@ -333,31 +333,48 @@
       }
     }
 
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(imageUrl).then(done).catch(function () {
-        copyFallback(imageUrl, done, fail);
-      });
-    } else {
-      copyFallback(imageUrl, done, fail);
+    function doCopy() {
+      if (navigator.clipboard && navigator.clipboard.write) {
+        var blob = new Blob([imageUrl], { type: 'text/plain' });
+        return navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]).then(done).catch(function () {
+          tryCopyText();
+        });
+      }
+      tryCopyText();
     }
-  }
 
-  function copyFallback(text, onSuccess, onFail) {
-    try {
-      var ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.position = 'fixed';
-      ta.style.left = '-9999px';
-      ta.style.top = '0';
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      var ok = document.execCommand('copy');
-      document.body.removeChild(ta);
-      if (ok) onSuccess(); else onFail();
-    } catch (_) {
-      onFail();
+    function tryCopyText() {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(imageUrl).then(done).catch(function () {
+          copyFallback(imageUrl, done, fail);
+        });
+      } else {
+        copyFallback(imageUrl, done, fail);
+      }
     }
+
+    function copyFallback(text, onSuccess, onFail) {
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.style.top = '0';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        ta.setSelectionRange(0, text.length);
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (ok) onSuccess(); else onFail();
+      } catch (_) {
+        onFail();
+      }
+    }
+
+    doCopy();
   }
 
   function renderModalContent(asset) {
