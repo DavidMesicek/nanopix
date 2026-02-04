@@ -144,12 +144,43 @@ body {
   border-color: var(--text-muted);
 }
 
+.card-image-wrap {
+  position: relative;
+  display: block;
+}
+
 .card-image {
   display: block;
   width: 100%;
   aspect-ratio: 4/3;
   object-fit: cover;
   background: var(--bg);
+}
+
+.btn-share-card {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.6);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.btn-share-card:hover {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.btn-share-card svg {
+  flex-shrink: 0;
 }
 
 .card-body {
@@ -234,13 +265,40 @@ body {
   padding: 1.5rem;
 }
 
+.modal-preview-wrap {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
 .modal-preview {
   width: 100%;
   aspect-ratio: 16/10;
   object-fit: contain;
   background: var(--bg);
   border-radius: var(--radius);
-  margin-bottom: 1rem;
+}
+
+.btn-share-modal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-share-modal:hover {
+  background: var(--border);
+}
+
+.btn-share-modal svg {
+  flex-shrink: 0;
 }
 
 .modal-title {

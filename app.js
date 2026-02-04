@@ -20,6 +20,8 @@
     blockExplorerUrls: ['https://polygonscan.com/'],
   };
 
+  const SHARE_ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.82 3.98M15.41 6.51l-6.82 3.98"/></svg>';
+
   let provider = null;
   let signer = null;
   let currentAccount = null;
@@ -233,7 +235,10 @@
       const card = document.createElement('article');
       card.className = 'card';
       card.innerHTML = `
-        <img class="card-image" src="${escapeAttr(asset.thumbUrl || asset.previewUrl || '')}" alt="${escapeAttr(asset.title)}" loading="lazy" />
+        <div class="card-image-wrap">
+          <img class="card-image" src="${escapeAttr(asset.thumbUrl || asset.previewUrl || '')}" alt="${escapeAttr(asset.title)}" loading="lazy" />
+          <button type="button" class="btn-share-card" aria-label="Zdieľať obrázok" title="Zdieľať obrázok">${SHARE_ICON_SVG}</button>
+        </div>
         <div class="card-body">
           <h2 class="card-title">${escapeHtml(asset.title)}</h2>
           <p class="card-price">${escapeHtml(asset.pricePol)} POL / ${escapeHtml(asset.priceSol)} SOL</p>
@@ -243,6 +248,7 @@
         </div>
       `;
       card.querySelector('.btn-view').addEventListener('click', () => openModal(asset));
+      card.querySelector('.btn-share-card').addEventListener('click', (e) => { e.stopPropagation(); shareAsset(asset); });
       galleryGrid.appendChild(card);
     });
   }
@@ -274,6 +280,49 @@
     return String(s ?? '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  async function shareAsset(asset) {
+    const base = getApiBase();
+    const imgPath = asset.previewUrl || asset.thumbUrl || '';
+    const imageUrl = imgPath.startsWith('http') ? imgPath : base + (imgPath.startsWith('/') ? '' : '/') + imgPath;
+    const title = asset.title || 'Obrázok';
+    const text = asset.description || '';
+
+    try {
+      if (navigator.share && navigator.canShare) {
+        try {
+          const res = await fetch(imageUrl, { mode: 'cors' });
+          if (res.ok) {
+            const blob = await res.blob();
+            const file = new File([blob], (asset.filename || asset.id || 'image') + '.png', { type: blob.type || 'image/png' });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({ files: [file], title: title });
+              return;
+            }
+          }
+        } catch (_) {}
+        await navigator.share({ url: imageUrl, title: title, text: text });
+        return;
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+    }
+    try {
+      await navigator.clipboard.writeText(imageUrl);
+      showShareFeedback('Link na obrázok skopírovaný do schránky.');
+    } catch (_) {
+      window.open(imageUrl, '_blank');
+    }
+  }
+
+  function showShareFeedback(msg) {
+    if (modalOverlay.getAttribute('aria-hidden') === 'false' && modalContent.querySelector('#paymentStatus')) {
+      setPaymentStatus(msg, 'success');
+      setTimeout(function () { setPaymentStatus(''); }, 2000);
+    } else {
+      alert(msg);
+    }
+  }
+
   function renderModalContent(asset) {
     if (!asset) return;
     const hasToken = !!getDownloadToken(asset.id);
@@ -293,7 +342,10 @@
     modalContent.dataset.assetId = asset.id;
     modalContent.innerHTML = `
       <h2 class="modal-title" id="modalTitle">${escapeHtml(asset.title)}</h2>
-      <img class="modal-preview" src="${escapeAttr(asset.previewUrl || asset.thumbUrl || '')}" alt="${escapeHtml(asset.title)}" />
+      <div class="modal-preview-wrap">
+        <img class="modal-preview" src="${escapeAttr(asset.previewUrl || asset.thumbUrl || '')}" alt="${escapeHtml(asset.title)}" />
+        <button type="button" class="btn-share-modal" aria-label="Zdieľať obrázok" title="Zdieľať obrázok">${SHARE_ICON_SVG} Zdieľať obrázok</button>
+      </div>
       <p class="modal-description">${escapeHtml(asset.description || '')}</p>
       <p class="modal-price">${escapeHtml(asset.pricePol)} POL &nbsp;|&nbsp; ${escapeHtml(asset.priceSol)} SOL</p>
       <div class="modal-actions">
@@ -318,6 +370,7 @@
     modalContent.querySelector('.btn-download-asset')?.addEventListener('click', () => {
       downloadAsset(asset);
     });
+    modalContent.querySelector('.btn-share-modal')?.addEventListener('click', () => shareAsset(asset));
   }
 
   function setPaymentStatus(text, className) {
@@ -383,14 +436,28 @@
       return;
     }
 
-    setPaymentStatus('Confirm transaction in your wallet…', 'pending');
+    var balanceWei;
+    try {
+      balanceWei = await provider.getBalance(currentAccount);
+    } catch (_) {}
+    if (balanceWei !== undefined) {
+      var balStr = ethers.formatEther(balanceWei);
+      setPaymentStatus('Účet ' + currentAccount.slice(0, 8) + '… má ' + balStr + ' POL. Potvrd transakciu v MetaMaske…', 'pending');
+    } else {
+      setPaymentStatus('Confirm transaction in your wallet…', 'pending');
+    }
     let tx;
     try {
       tx = await signer.sendTransaction({ to: merchant, value: valueWei });
     } catch (e) {
       var msg = e.message || String(e);
       if (e.code === 'INSUFFICIENT_FUNDS' || msg.indexOf('insufficient funds') !== -1) {
-        msg = 'Nedostatočný zostatok POL (vrátane poplatku za plyn). Dopln POL v peňaženke na Polygon (napr. burza alebo bridge na polygon.technology).';
+        msg = 'Pripojený účet ' + currentAccount.slice(0, 6) + '…' + currentAccount.slice(-4) + ' nemá dosť POL.';
+        if (balanceWei !== undefined) {
+          msg += ' Zostatok: ' + ethers.formatEther(balanceWei) + ' POL. Potrebuješ aspoň ' + asset.pricePol + ' POL + plyn. Skontroluj či je v MetaMaske zvolený správny účet (ten s POL).';
+        } else {
+          msg += ' Dopln POL na Polygon alebo zvoľ v MetaMaske účet, ktorý má POL.';
+        }
       }
       setPaymentStatus('Transakcia zlyhala: ' + msg, 'error');
       return;
