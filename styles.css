@@ -66,15 +66,47 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.ticker-polygon-logo {
+  width: 24px;
+  height: 24px;
+  vertical-align: middle;
+  object-fit: contain;
 }
 
 .ticker-label { color: var(--text-muted); }
 .ticker-usd::before { content: " $"; }
 .ticker-eur::before { content: " / €"; }
 .ticker-stale {
-  margin-left: 0.25rem;
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+.ticker-provided {
+  margin-left: 0.25rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+.ticker-provided a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.ticker-provided a:hover {
+  text-decoration: underline;
+  color: var(--text);
+}
+
+.price-polygon-logo {
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+  margin-right: 0.25rem;
+  object-fit: contain;
 }
 
 .btn {

@@ -126,21 +126,21 @@
     const code = e.code || e.error?.code;
     const msg = (e.message || String(e)).toLowerCase();
     if (code === 4001 || msg.includes('user rejected') || msg.includes('user denied')) {
-      return 'Pripojenie bolo zrušené. Schváľ v MetaMask okne (Connect / Pripojiť).';
+      return 'Connection cancelled. Approve in the MetaMask popup (Connect).';
     }
     if (code === 4100 || msg.includes('unauthorized') || msg.includes('locked')) {
-      return 'MetaMask je zamknutý. Odomkni ho (zadaj heslo) a skús znova.';
+      return 'MetaMask is locked. Unlock it and try again.';
     }
     if (msg.includes('non-ethereum')) {
-      return 'Vyber MetaMask ako peňaženku: v prehliadači klikni na ikonu rozšírenia a zvoľ MetaMask.';
+      return 'Choose MetaMask as the wallet: click the extension icon and select MetaMask.';
     }
-    return 'Pripojenie zlyhalo: ' + (e.message || String(e));
+    return 'Connection failed: ' + (e.message || String(e));
   }
 
   async function connectWallet() {
     const eth = getEthereumProvider();
     if (!eth) {
-      alert('MetaMask nie je nainštalovaný. Nainštaluj rozšírenie MetaMask a obnov stránku.');
+      alert('MetaMask is not installed. Install the extension and refresh the page.');
       return;
     }
     try {
@@ -191,7 +191,7 @@
       }
       var net = await provider.getNetwork();
       var chainId = Number(net.chainId);
-      var networkLabel = chainId === POLYGON_CHAIN_ID ? ' · Polygon' : ' · Iná sieť';
+      var networkLabel = chainId === POLYGON_CHAIN_ID ? ' · Polygon' : ' · Other network';
       var bal = await provider.getBalance(currentAccount);
       var polStr = ethers.formatEther(bal);
       walletPolInfo.textContent = currentAccount.slice(0, 6) + '…' + currentAccount.slice(-4) + ' · ' + polStr + ' POL' + networkLabel;
@@ -205,9 +205,9 @@
     try {
       var net = await provider.getNetwork();
       var chainId = Number(net.chainId);
-      var tail = chainId === POLYGON_CHAIN_ID ? ' · Polygon' : ' · Iná sieť';
+      var tail = chainId === POLYGON_CHAIN_ID ? ' · Polygon' : ' · Other network';
       if (walletPolInfo.textContent && !walletPolInfo.textContent.endsWith(tail)) {
-        walletPolInfo.textContent = walletPolInfo.textContent.replace(/\s·\s(Polygon|Iná sieť.*)$/, '') + tail;
+        walletPolInfo.textContent = walletPolInfo.textContent.replace(/\s·\s(Polygon|Other network.*)$/, '') + tail;
       }
     } catch (_) {}
   }
@@ -215,7 +215,7 @@
   function updateWalletUI() {
     if (connectPolBtn) {
       if (currentAccount) {
-        connectPolBtn.textContent = 'Odpojiť POL';
+        connectPolBtn.textContent = 'Disconnect POL';
         connectPolBtn.classList.add('connected');
       } else {
         connectPolBtn.textContent = 'Connect POL';
@@ -282,11 +282,11 @@
       card.innerHTML = `
         <div class="card-image-wrap">
           <img class="card-image" src="${escapeAttr(resolveAssetUrl(asset.thumbUrl || asset.previewUrl || ''))}" alt="${escapeAttr(asset.title)}" loading="lazy" />
-          <button type="button" class="btn-share-card" aria-label="Kopírovať odkaz na obrázok" title="Kopírovať odkaz na obrázok">${SHARE_ICON_SVG}</button>
+          <button type="button" class="btn-share-card" aria-label="Share" title="Share">${SHARE_ICON_SVG}</button>
         </div>
         <div class="card-body">
           <h2 class="card-title">${escapeHtml(asset.title)}</h2>
-          <p class="card-price">${escapeHtml(asset.pricePol)} POL</p>
+          <p class="card-price"><img class="price-polygon-logo" src="${escapeAttr(getSiteBase() + 'polygon.png')}" alt="Polygon" />${escapeHtml(asset.pricePol)} POL</p>
           <div class="card-actions">
             <button type="button" class="btn btn-view" data-asset-id="${escapeAttr(asset.id)}">View</button>
           </div>
@@ -359,18 +359,18 @@
 
     function done() {
       if (modalOverlay.getAttribute('aria-hidden') === 'false' && modalContent.querySelector('#paymentStatus')) {
-        setPaymentStatus('Odkaz na tento pohľad skopírovaný. Pri otvorení linku sa zobrazí táto stránka s obrázkom.', 'success');
+        setPaymentStatus('Link copied. Opening it will show this page with the image.', 'success');
         setTimeout(function () { setPaymentStatus(''); }, 2500);
       } else {
-        alert('Odkaz skopírovaný. Pri otvorení sa zobrazí táto stránka s obrázkom.');
+        alert('Link copied. Opening it will show this page with the image.');
       }
     }
 
     function fail() {
       if (modalOverlay.getAttribute('aria-hidden') === 'false' && modalContent.querySelector('#paymentStatus')) {
-        setPaymentStatus('Odkaz: ' + pageLink, 'success');
+        setPaymentStatus('Link: ' + pageLink, 'success');
       } else {
-        alert('Odkaz: ' + pageLink);
+        alert('Link: ' + pageLink);
       }
     }
 
@@ -438,10 +438,10 @@
       <h2 class="modal-title" id="modalTitle">${escapeHtml(asset.title)}</h2>
       <div class="modal-preview-wrap">
         <img class="modal-preview" src="${escapeAttr(resolveAssetUrl(asset.previewUrl || asset.thumbUrl || ''))}" alt="${escapeHtml(asset.title)}" />
-        <button type="button" class="btn-share-overlay" aria-label="Kopírovať odkaz na tento pohľad (stránka s obrázkom)" title="Kopírovať odkaz – otvorí túto stránku s týmto obrázkom">${SHARE_ICON_SVG}<span class="btn-share-overlay-label">Kopírovať odkaz</span></button>
+        <button type="button" class="btn-share-overlay" aria-label="Share" title="Share – copy link to this page with image">${SHARE_ICON_SVG}<span class="btn-share-overlay-label">Share</span></button>
       </div>
       <p class="modal-description">${escapeHtml(asset.description || '')}</p>
-      <p class="modal-price">${escapeHtml(asset.pricePol)} POL</p>
+      <p class="modal-price"><img class="price-polygon-logo" src="${escapeAttr(getSiteBase() + 'polygon.png')}" alt="Polygon" />${escapeHtml(asset.pricePol)} POL</p>
       <div class="modal-actions">
         ${!currentAccount ? '<button type="button" class="btn btn-wallet connect-pol-in-modal">Connect POL</button>' : ''}
         <button type="button" class="btn btn-buy btn-buy-pol" ${!canBuyPol || hasToken ? 'disabled' : ''} title="Polygon (MetaMask)">Buy with POL</button>
@@ -486,17 +486,17 @@
 
   async function buyWithPol(asset) {
     if (!signer) {
-      setPaymentStatus('Najprv pripoj peňaženku (POL).', 'error');
+      setPaymentStatus('Connect your wallet (POL) first.', 'error');
       return;
     }
     const statusEl = modalContent.querySelector('#paymentStatus');
     statusEl.style.display = 'block';
 
     try {
-      setPaymentStatus('Prepnúvam na Polygon…', 'pending');
+      setPaymentStatus('Switching to Polygon…', 'pending');
       await ensurePolygon();
     } catch (e) {
-      setPaymentStatus('Pre platbu POL musí byť MetaMask na sieti Polygon. V MetaMaske zvoľ sieť → Polygon Mainnet (prípadne ju najprv pridaj).', 'error');
+      setPaymentStatus('For POL payment MetaMask must be on Polygon. In MetaMask choose Network → Polygon Mainnet (or add it first).', 'error');
       return;
     }
 
@@ -517,9 +517,9 @@
     } catch (_) {}
     if (balanceWei !== undefined) {
       var balStr = ethers.formatEther(balanceWei);
-      setPaymentStatus('Účet ' + currentAccount + ' má na Polygon ' + balStr + ' POL. Potvrd transakciu v MetaMaske…', 'pending');
+      setPaymentStatus('Account ' + currentAccount + ' has ' + balStr + ' POL on Polygon. Confirm the transaction in MetaMask…', 'pending');
     } else {
-      setPaymentStatus('Potvrd transakciu v MetaMaske…', 'pending');
+      setPaymentStatus('Confirm the transaction in MetaMask…', 'pending');
     }
     let tx;
     try {
@@ -527,9 +527,9 @@
     } catch (e) {
       var msg = e.message || String(e);
       if (e.code === 'INSUFFICIENT_FUNDS' || msg.indexOf('insufficient funds') !== -1) {
-        msg = 'Stránka vidí tento účet: ' + currentAccount + '. Zostatok na Polygon: ' + (balanceWei !== undefined ? ethers.formatEther(balanceWei) + ' POL' : '?') + '. Potrebuješ aspoň ' + asset.pricePol + ' POL + plyn. Ak v MetaMaske vidíš iný zostatok, zvoľ v MetaMaske ten účet, ktorý má POL (ikona účtu hore).';
+        msg = 'This account: ' + currentAccount + '. Balance on Polygon: ' + (balanceWei !== undefined ? ethers.formatEther(balanceWei) + ' POL' : '?') + '. You need at least ' + asset.pricePol + ' POL + gas. If MetaMask shows a different balance, select the account that has POL (account icon at top).';
       }
-      setPaymentStatus('Transakcia zlyhala: ' + msg, 'error');
+      setPaymentStatus('Transaction failed: ' + msg, 'error');
       return;
     }
 
@@ -549,7 +549,7 @@
     try {
       var statusOk = Number(receipt.status) === 1 || receipt.status === 1n;
       if (!statusOk) {
-        setPaymentStatus('Transakcia zlyhala na sieti (status ' + receipt.status + '). Skontroluj Polygonscan.', 'error');
+        setPaymentStatus('Transaction failed on network (status ' + receipt.status + '). Check Polygonscan.', 'error');
         return;
       }
       var toAddr = receipt.to;
@@ -565,29 +565,52 @@
       if (verified) {
         var expiresAt = Date.now() + 24 * 60 * 60 * 1000;
         setDownloadToken(asset.id, txHash, expiresAt);
-        setPaymentStatus('Platba overená. Môžeš stiahnuť súbor nižšie.', 'success');
+        setPaymentStatus('Payment verified. You can download the file below.', 'success');
         renderModalContent(asset);
       }
     } catch (e) {
       console.warn('Verify exception:', e);
     }
     if (!verified) {
-      setPaymentStatus('Overenie zlyhalo. Ak je tx na Polygonscan úspešná, obnov stránku a skús znova.', 'error');
+      setPaymentStatus('Verification failed. If the tx is successful on Polygonscan, refresh the page and try again.', 'error');
     }
   }
 
   function downloadAsset(asset) {
     const token = getDownloadToken(asset.id);
     if (!token) {
-      alert('Stiahnutie vypršalo alebo neplatný nákup. Zaplať znova.');
+      alert('Download expired or invalid purchase. Please pay again.');
       return;
     }
     var url = resolveAssetUrl(asset.downloadUrl || asset.previewUrl || asset.thumbUrl || '');
     if (!url) {
-      alert('Pre tento obrázok nie je nastavená cesta na stiahnutie.');
+      alert('No download path set for this image.');
       return;
     }
-    window.open(url, '_blank');
+    var filename = (asset.filename || asset.title || 'download') + (asset.filename && asset.filename.includes('.') ? '' : '.png');
+    fetch(url, { mode: 'cors' })
+      .then(function (r) { return r.blob(); })
+      .then(function (blob) {
+        var blobUrl = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      })
+      .catch(function () {
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.target = '_blank';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      });
   }
 
   modalClose.addEventListener('click', closeModal);
@@ -645,6 +668,8 @@
     }
   });
 
+  var tickerLogo = document.getElementById('tickerPolygonLogo');
+  if (tickerLogo) tickerLogo.src = getSiteBase() + 'polygon.png';
   loadPrice();
   loadTokensFromSession();
   loadAssets().then(function () {
