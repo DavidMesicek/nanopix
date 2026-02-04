@@ -145,11 +145,24 @@
   }
 
   async function refreshPolBalance() {
-    if (!walletBalanceEl || !provider || !currentAccount) {
+    if (!walletBalanceEl || !provider) {
       if (walletBalanceEl) walletBalanceEl.textContent = '';
       return;
     }
     try {
+      if (signer) {
+        currentAccount = (await signer.getAddress()).toLowerCase();
+        if (walletInfo && currentAccount) {
+          var parts = [];
+          if (currentAccount) parts.push('POL: ' + currentAccount.slice(0, 6) + '…' + currentAccount.slice(-4));
+          if (solanaPublicKey) parts.push('SOL: ' + solanaPublicKey.slice(0, 6) + '…' + solanaPublicKey.slice(-4));
+          walletInfo.textContent = parts.join(' | ');
+        }
+      }
+      if (!currentAccount) {
+        if (walletBalanceEl) walletBalanceEl.textContent = '';
+        return;
+      }
       var net = await provider.getNetwork();
       if (Number(net.chainId) !== POLYGON_CHAIN_ID) {
         walletBalanceEl.textContent = '';
@@ -186,18 +199,21 @@
   }
 
   function updateWalletUI() {
+    var parts = [];
     if (currentAccount) {
+      parts.push('POL: ' + currentAccount.slice(0, 6) + '…' + currentAccount.slice(-4));
+    }
+    if (solanaPublicKey) {
+      parts.push('SOL: ' + solanaPublicKey.slice(0, 6) + '…' + solanaPublicKey.slice(-4));
+    }
+    if (currentAccount || solanaPublicKey) {
       connectWalletBtn.textContent = 'Odpojiť';
       connectWalletBtn.classList.add('connected');
-      walletInfo.textContent = currentAccount.slice(0, 6) + '…' + currentAccount.slice(-4);
-    } else if (solanaPublicKey) {
-      connectWalletBtn.textContent = 'Odpojiť';
-      connectWalletBtn.classList.add('connected');
-      walletInfo.textContent = solanaPublicKey.slice(0, 6) + '…' + solanaPublicKey.slice(-4);
+      if (walletInfo) walletInfo.textContent = parts.join(' | ');
     } else {
       connectWalletBtn.textContent = 'Connect Wallet';
       connectWalletBtn.classList.remove('connected');
-      walletInfo.textContent = '';
+      if (walletInfo) walletInfo.textContent = '';
     }
     if (!currentAccount) {
       if (walletBalanceEl) walletBalanceEl.textContent = '';
@@ -205,7 +221,7 @@
         walletNetworkEl.textContent = '';
         walletNetworkEl.className = 'wallet-network';
       }
-    } else if (currentAccount) {
+    } else {
       refreshPolBalance();
     }
   }
@@ -341,10 +357,10 @@
 
     function done() {
       if (modalOverlay.getAttribute('aria-hidden') === 'false' && modalContent.querySelector('#paymentStatus')) {
-        setPaymentStatus('Odkaz skopírovaný (len text).', 'success');
+        setPaymentStatus('Odkaz na tento pohľad skopírovaný. Pri otvorení linku sa zobrazí táto stránka s obrázkom.', 'success');
         setTimeout(function () { setPaymentStatus(''); }, 2500);
       } else {
-        alert('Odkaz skopírovaný (len text).');
+        alert('Odkaz skopírovaný. Pri otvorení sa zobrazí táto stránka s obrázkom.');
       }
     }
 
@@ -421,7 +437,7 @@
       <h2 class="modal-title" id="modalTitle">${escapeHtml(asset.title)}</h2>
       <div class="modal-preview-wrap">
         <img class="modal-preview" src="${escapeAttr(asset.previewUrl || asset.thumbUrl || '')}" alt="${escapeHtml(asset.title)}" />
-        <button type="button" class="btn-share-overlay" aria-label="Kopírovať odkaz na obrázok" title="Kopírovať odkaz na obrázok">${SHARE_ICON_SVG}<span class="btn-share-overlay-label">Kopírovať odkaz</span></button>
+        <button type="button" class="btn-share-overlay" aria-label="Kopírovať odkaz na tento pohľad (stránka s obrázkom)" title="Kopírovať odkaz – otvorí túto stránku s týmto obrázkom">${SHARE_ICON_SVG}<span class="btn-share-overlay-label">Kopírovať odkaz</span></button>
       </div>
       <p class="modal-description">${escapeHtml(asset.description || '')}</p>
       <p class="modal-price">${escapeHtml(asset.pricePol)} POL &nbsp;|&nbsp; ${escapeHtml(asset.priceSol)} SOL</p>
@@ -749,7 +765,9 @@
   loadPrice();
   loadTokensFromSession();
   loadAssets().then(function () {
-    openModalFromHash();
+    requestAnimationFrame(function () {
+      openModalFromHash();
+    });
   });
   updateWalletUI();
 
@@ -760,6 +778,12 @@
       openModalFromHash();
     }
   });
+  if (window.location.hash) {
+    window.addEventListener('load', function onLoad() {
+      window.removeEventListener('load', onLoad);
+      if (assets.length > 0 && window.location.hash) openModalFromHash();
+    });
+  }
 
   if (typeof window.ethereum !== 'undefined') {
     window.ethereum.request({ method: 'eth_accounts' }).then(async function (accounts) {
