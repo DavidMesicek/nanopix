@@ -112,12 +112,11 @@
     }
     try {
       provider = new ethers.BrowserProvider(window.ethereum);
-      const accounts = await provider.send('eth_requestAccounts', []);
-      if (!accounts || accounts.length === 0) throw new Error('Žiadne účty');
-      currentAccount = accounts[0];
+      await provider.send('eth_requestAccounts', []);
       await ensurePolygon();
       provider = new ethers.BrowserProvider(window.ethereum);
       signer = await provider.getSigner();
+      currentAccount = (await signer.getAddress()).toLowerCase();
       updateWalletUI();
       await updateNetworkDisplay();
       await refreshPolBalance();
@@ -456,8 +455,8 @@
   }
 
   async function buyWithPol(asset) {
-    if (!signer || !currentAccount) {
-      setPaymentStatus('Please connect your wallet first.', 'error');
+    if (!signer) {
+      setPaymentStatus('Najprv pripoj peňaženku (POL).', 'error');
       return;
     }
     const statusEl = modalContent.querySelector('#paymentStatus');
@@ -473,6 +472,7 @@
 
     provider = new ethers.BrowserProvider(window.ethereum);
     signer = await provider.getSigner();
+    currentAccount = (await signer.getAddress()).toLowerCase();
 
     const valueWei = ethers.parseEther(String(asset.pricePol));
     const merchant = MERCHANT_ADDRESS;
@@ -652,13 +652,16 @@
   });
 
   window.ethereum?.on?.('accountsChanged', async (accounts) => {
-    currentAccount = accounts && accounts[0] ? accounts[0] : null;
     signer = null;
-    provider = currentAccount ? new ethers.BrowserProvider(window.ethereum) : null;
-    if (provider && currentAccount) {
+    currentAccount = null;
+    provider = accounts && accounts[0] ? new ethers.BrowserProvider(window.ethereum) : null;
+    if (provider) {
       try {
         var net = await provider.getNetwork();
-        if (Number(net.chainId) === POLYGON_CHAIN_ID) signer = await provider.getSigner();
+        if (Number(net.chainId) === POLYGON_CHAIN_ID) {
+          signer = await provider.getSigner();
+          currentAccount = (await signer.getAddress()).toLowerCase();
+        }
       } catch (_) {}
     }
     updateWalletUI();
@@ -712,12 +715,14 @@
     window.ethereum.request({ method: 'eth_accounts' }).then(async function (accounts) {
       if (!accounts || accounts.length === 0) return;
       provider = new ethers.BrowserProvider(window.ethereum);
-      currentAccount = accounts[0];
       try {
         await ensurePolygon();
         provider = new ethers.BrowserProvider(window.ethereum);
         var net = await provider.getNetwork();
-        if (Number(net.chainId) === POLYGON_CHAIN_ID) signer = await provider.getSigner();
+        if (Number(net.chainId) === POLYGON_CHAIN_ID) {
+          signer = await provider.getSigner();
+          currentAccount = (await signer.getAddress()).toLowerCase();
+        }
       } catch (_) {}
       updateWalletUI();
       await updateNetworkDisplay();
