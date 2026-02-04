@@ -118,5 +118,17 @@
     "description": "Single dot on neutral background.",
     "tags": ["minimal", "abstract"],
     "filename": "minimal-dot.png"
+  },
+  {
+    "id": "autumn-of-the-future",
+    "title": "Autumn of the Future",
+    "pricePol": "1",
+    "priceSol": "0.00125",
+    "priceTrx": "0.5",
+    "thumbUrl": "img/autumn-of-the-future.png",
+    "previewUrl": "img/autumn-of-the-future.png",
+    "description": "Autumn of the Future.",
+    "tags": ["nature", "autumn"],
+    "filename": "Autumn of the Future.png"
   }
 ]
