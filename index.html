@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NanoPix – Buy images instantly with POL (Polygon)</title>
+  <title>NanoPix – Buy images with POL or SOL</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="header">
     <h1 class="site-title">NanoPix</h1>
-    <p class="site-subtitle">Buy images instantly with POL (Polygon)</p>
+    <p class="site-subtitle">Buy images instantly with POL (Polygon) or SOL (Solana)</p>
     <div class="header-actions">
       <div class="price-ticker" id="priceTicker">
         <span class="ticker-label">POL ≈</span>
@@ -17,10 +17,14 @@
         <span class="ticker-eur" id="tickerEur">—</span>
         <span class="ticker-stale" id="tickerStale"></span>
       </div>
-      <button type="button" class="btn btn-wallet" id="connectWalletBtn">Connect Wallet</button>
-      <span class="wallet-info" id="walletInfo"></span>
-      <span class="wallet-balance" id="walletBalance"></span>
-      <span class="wallet-network" id="walletNetwork"></span>
+      <div class="wallet-pol">
+        <button type="button" class="btn btn-wallet btn-pol" id="connectPolBtn">Connect POL</button>
+        <span class="wallet-pol-info" id="walletPolInfo"></span>
+      </div>
+      <div class="wallet-sol">
+        <button type="button" class="btn btn-wallet btn-sol" id="connectSolBtn">Connect SOL</button>
+        <span class="wallet-sol-info" id="walletSolInfo"></span>
+      </div>
     </div>
   </header>
 

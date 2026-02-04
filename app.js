@@ -34,10 +34,10 @@
   const tickerUsd = el('tickerUsd');
   const tickerEur = el('tickerEur');
   const tickerStale = el('tickerStale');
-  const connectWalletBtn = el('connectWalletBtn');
-  const walletInfo = el('walletInfo');
-  const walletBalanceEl = el('walletBalance');
-  const walletNetworkEl = el('walletNetwork');
+  const connectPolBtn = el('connectPolBtn');
+  const connectSolBtn = el('connectSolBtn');
+  const walletPolInfo = el('walletPolInfo');
+  const walletSolInfo = el('walletSolInfo');
   const galleryGrid = el('galleryGrid');
   const modalOverlay = el('modalOverlay');
   const modalContent = el('modalContent');
@@ -129,99 +129,81 @@
     }
   }
 
-  function disconnectWallet() {
+  function disconnectPol() {
     currentAccount = null;
     signer = null;
     provider = null;
     updateWalletUI();
-    if (walletBalanceEl) walletBalanceEl.textContent = '';
-    if (walletNetworkEl) {
-      walletNetworkEl.textContent = '';
-      walletNetworkEl.className = 'wallet-network';
-    }
-    if (modalOverlay.getAttribute('aria-hidden') === 'false') {
-      renderModalContent(getCurrentModalAsset());
-    }
+    if (modalOverlay.getAttribute('aria-hidden') === 'false') renderModalContent(getCurrentModalAsset());
+  }
+
+  function disconnectSol() {
+    solanaPublicKey = null;
+    updateWalletUI();
+    if (modalOverlay.getAttribute('aria-hidden') === 'false') renderModalContent(getCurrentModalAsset());
   }
 
   async function refreshPolBalance() {
-    if (!walletBalanceEl || !provider) {
-      if (walletBalanceEl) walletBalanceEl.textContent = '';
+    if (!walletPolInfo || !provider) {
+      if (walletPolInfo) walletPolInfo.textContent = '';
       return;
     }
     try {
       if (signer) {
         currentAccount = (await signer.getAddress()).toLowerCase();
-        if (walletInfo && currentAccount) {
-          var parts = [];
-          if (currentAccount) parts.push('POL: ' + currentAccount.slice(0, 6) + '…' + currentAccount.slice(-4));
-          if (solanaPublicKey) parts.push('SOL: ' + solanaPublicKey.slice(0, 6) + '…' + solanaPublicKey.slice(-4));
-          walletInfo.textContent = parts.join(' | ');
-        }
       }
       if (!currentAccount) {
-        if (walletBalanceEl) walletBalanceEl.textContent = '';
+        walletPolInfo.textContent = '';
         return;
       }
       var net = await provider.getNetwork();
-      if (Number(net.chainId) !== POLYGON_CHAIN_ID) {
-        walletBalanceEl.textContent = '';
-        return;
-      }
+      var chainId = Number(net.chainId);
+      var networkLabel = chainId === POLYGON_CHAIN_ID ? ' · Polygon' : ' · Iná sieť';
       var bal = await provider.getBalance(currentAccount);
       var polStr = ethers.formatEther(bal);
-      walletBalanceEl.textContent = polStr + ' POL';
+      walletPolInfo.textContent = currentAccount.slice(0, 6) + '…' + currentAccount.slice(-4) + ' · ' + polStr + ' POL' + networkLabel;
     } catch (_) {
-      walletBalanceEl.textContent = '';
+      if (walletPolInfo) walletPolInfo.textContent = '';
     }
   }
 
   async function updateNetworkDisplay() {
-    if (!walletNetworkEl) return;
-    if (!provider || !currentAccount) {
-      walletNetworkEl.textContent = '';
-      walletNetworkEl.className = 'wallet-network';
-      return;
-    }
+    if (!walletPolInfo || !currentAccount) return;
     try {
-      const network = await provider.getNetwork();
-      const chainId = Number(network.chainId);
-      if (chainId === POLYGON_CHAIN_ID) {
-        walletNetworkEl.textContent = ' · Polygon';
-        walletNetworkEl.className = 'wallet-network';
-      } else {
-        walletNetworkEl.textContent = ' · Iná sieť (prepni na Polygon v MetaMaske)';
-        walletNetworkEl.className = 'wallet-network wrong-network';
+      var net = await provider.getNetwork();
+      var chainId = Number(net.chainId);
+      var tail = chainId === POLYGON_CHAIN_ID ? ' · Polygon' : ' · Iná sieť';
+      if (walletPolInfo.textContent && !walletPolInfo.textContent.endsWith(tail)) {
+        walletPolInfo.textContent = walletPolInfo.textContent.replace(/\s·\s(Polygon|Iná sieť.*)$/, '') + tail;
       }
-    } catch (_) {
-      walletNetworkEl.textContent = '';
-    }
+    } catch (_) {}
   }
 
   function updateWalletUI() {
-    var parts = [];
-    if (currentAccount) {
-      parts.push('POL: ' + currentAccount.slice(0, 6) + '…' + currentAccount.slice(-4));
-    }
-    if (solanaPublicKey) {
-      parts.push('SOL: ' + solanaPublicKey.slice(0, 6) + '…' + solanaPublicKey.slice(-4));
-    }
-    if (currentAccount || solanaPublicKey) {
-      connectWalletBtn.textContent = 'Odpojiť';
-      connectWalletBtn.classList.add('connected');
-      if (walletInfo) walletInfo.textContent = parts.join(' | ');
-    } else {
-      connectWalletBtn.textContent = 'Connect Wallet';
-      connectWalletBtn.classList.remove('connected');
-      if (walletInfo) walletInfo.textContent = '';
-    }
-    if (!currentAccount) {
-      if (walletBalanceEl) walletBalanceEl.textContent = '';
-      if (walletNetworkEl) {
-        walletNetworkEl.textContent = '';
-        walletNetworkEl.className = 'wallet-network';
+    if (connectPolBtn) {
+      if (currentAccount) {
+        connectPolBtn.textContent = 'Odpojiť POL';
+        connectPolBtn.classList.add('connected');
+      } else {
+        connectPolBtn.textContent = 'Connect POL';
+        connectPolBtn.classList.remove('connected');
       }
-    } else {
+    }
+    if (connectSolBtn) {
+      if (solanaPublicKey) {
+        connectSolBtn.textContent = 'Odpojiť SOL';
+        connectSolBtn.classList.add('connected');
+      } else {
+        connectSolBtn.textContent = 'Connect SOL';
+        connectSolBtn.classList.remove('connected');
+      }
+    }
+    if (!currentAccount && walletPolInfo) walletPolInfo.textContent = '';
+    if (!solanaPublicKey && walletSolInfo) walletSolInfo.textContent = '';
+    if (solanaPublicKey && walletSolInfo) {
+      walletSolInfo.textContent = solanaPublicKey.slice(0, 6) + '…' + solanaPublicKey.slice(-4);
+    }
+    if (currentAccount) {
       refreshPolBalance();
     }
   }
@@ -442,7 +424,8 @@
       <p class="modal-description">${escapeHtml(asset.description || '')}</p>
       <p class="modal-price">${escapeHtml(asset.pricePol)} POL &nbsp;|&nbsp; ${escapeHtml(asset.priceSol)} SOL</p>
       <div class="modal-actions">
-        ${!currentAccount && !solanaPublicKey ? '<button type="button" class="btn btn-wallet connect-in-modal">Connect Wallet</button>' : ''}
+        ${!currentAccount ? '<button type="button" class="btn btn-wallet connect-pol-in-modal">Connect POL</button>' : ''}
+        ${!solanaPublicKey ? '<button type="button" class="btn btn-wallet connect-sol-in-modal">Connect SOL</button>' : ''}
         <button type="button" class="btn btn-buy btn-buy-pol" ${!canBuyPol || hasToken ? 'disabled' : ''} title="Polygon (MetaMask)">Buy with POL</button>
         <button type="button" class="btn btn-buy btn-buy-sol" ${hasToken ? 'disabled' : ''} title="Solana (Phantom)">Buy with SOL</button>
         ${hasToken ? '<button type="button" class="btn btn-download btn-download-asset">Download</button>' : ''}
@@ -571,7 +554,7 @@
     const txHash = receipt.hash;
     setPaymentStatusTx(txHash, 'polygon');
     setPaymentStatus('Verifying payment with server…', 'pending');
-    await callVerifyAndApplyToken(asset, txHash, currentAccount, 'polygon', POLYGON_CHAIN_ID);
+    await callVerifyAndApplyToken(asset, txHash, currentAccount, 'polygon', POLYGON_CHAIN_ID, 'POL');
   }
 
   async function buyWithSol(asset) {
@@ -632,11 +615,12 @@
 
     setPaymentStatusTx(txHash, 'solana');
     setPaymentStatus('Verifying payment with server…', 'pending');
-    await callVerifyAndApplyToken(asset, txHash, solanaPublicKey, 'solana', 0);
+    await callVerifyAndApplyToken(asset, txHash, solanaPublicKey, 'solana', 0, 'SOL');
   }
 
-  async function callVerifyAndApplyToken(asset, txHash, walletAddress, network, chainId) {
+  async function callVerifyAndApplyToken(asset, txHash, walletAddress, network, chainId, currency) {
     const base = getApiBase();
+    currency = currency || (network === 'solana' ? 'SOL' : 'POL');
     let res;
     try {
       res = await fetch(base + '/api/verify', {
@@ -648,6 +632,7 @@
           walletAddress,
           chainId: chainId || (network === 'polygon' ? POLYGON_CHAIN_ID : 0),
           network: network,
+          currency: currency,
         }),
       });
     } catch (e) {
@@ -693,18 +678,20 @@
     if (e.target === modalOverlay) closeModal();
   });
 
-  connectWalletBtn.addEventListener('click', function () {
+  connectPolBtn.addEventListener('click', function () {
     if (currentAccount) {
-      disconnectWallet();
-      return;
-    }
-    if (solanaPublicKey) {
-      solanaPublicKey = null;
-      updateWalletUI();
-      if (modalOverlay.getAttribute('aria-hidden') === 'false') renderModalContent(getCurrentModalAsset());
+      disconnectPol();
       return;
     }
     connectWallet();
+  });
+
+  connectSolBtn.addEventListener('click', function () {
+    if (solanaPublicKey) {
+      disconnectSol();
+      return;
+    }
+    connectSolana();
   });
 
   window.ethereum?.on?.('accountsChanged', async (accounts) => {
