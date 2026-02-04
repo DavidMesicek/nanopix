@@ -90,15 +90,15 @@ body {
 .ticker-provided {
   margin-left: 0.25rem;
   font-size: 0.7rem;
-  color: var(--text-muted);
+  color: #facc15;
 }
 .ticker-provided a {
-  color: var(--text-muted);
+  color: #facc15;
   text-decoration: none;
 }
 .ticker-provided a:hover {
   text-decoration: underline;
-  color: var(--text);
+  color: #fde047;
 }
 
 .price-polygon-logo {

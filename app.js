@@ -8,7 +8,8 @@
   const POLYGON_CHAIN_ID_HEX = '0x89';
   const COINGECKO_IDS = 'polygon-ecosystem-token';
   const PRICE_CACHE_KEY = 'nanopix_pol_price';
-  const PRICE_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+  const PRICE_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
+  const PRICE_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
   const POLYGON_PARAMS = {
     chainId: POLYGON_CHAIN_ID_HEX,
@@ -671,6 +672,7 @@
   var tickerLogo = document.getElementById('tickerPolygonLogo');
   if (tickerLogo) tickerLogo.src = getSiteBase() + 'polygon.png';
   loadPrice();
+  setInterval(loadPrice, PRICE_REFRESH_INTERVAL_MS);
   loadTokensFromSession();
   loadAssets().then(function () {
     requestAnimationFrame(function () {
