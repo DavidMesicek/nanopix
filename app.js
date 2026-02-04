@@ -113,11 +113,17 @@
     try {
       provider = new ethers.BrowserProvider(window.ethereum);
       await provider.send('eth_requestAccounts', []);
-      await ensurePolygon();
-      provider = new ethers.BrowserProvider(window.ethereum);
       signer = await provider.getSigner();
       currentAccount = (await signer.getAddress()).toLowerCase();
       updateWalletUI();
+      try {
+        await ensurePolygon();
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer = await provider.getSigner();
+        currentAccount = (await signer.getAddress()).toLowerCase();
+      } catch (switchErr) {
+        console.warn('Polygon switch skipped:', switchErr);
+      }
       await updateNetworkDisplay();
       await refreshPolBalance();
       if (modalOverlay.getAttribute('aria-hidden') === 'false') {
@@ -789,5 +795,14 @@
       await updateNetworkDisplay();
       await refreshPolBalance();
     }).catch(function () {});
+  }
+
+  if (typeof window.solana !== 'undefined') {
+    try {
+      if (window.solana.isConnected && window.solana.publicKey) {
+        solanaPublicKey = window.solana.publicKey.toString();
+        updateWalletUI();
+      }
+    } catch (_) {}
   }
 })();
