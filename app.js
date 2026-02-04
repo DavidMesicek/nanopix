@@ -8,7 +8,7 @@
   const MERCHANT_TRX_ADDRESS = 'TAhKGQVs5sXNGQrxbCqucHf23rezkwAo7X'; // Tron
   const POLYGON_CHAIN_ID = 137;
   const POLYGON_CHAIN_ID_HEX = '0x89';
-  const SOLANA_MAINNET = 'https://api.mainnet-beta.solana.com';
+  const SOLANA_MAINNET = 'https://solana.publicnode.com';
   const COINGECKO_IDS = 'polygon-ecosystem-token';
   const PRICE_CACHE_KEY = 'nanopix_pol_price';
   const PRICE_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
@@ -266,8 +266,8 @@
       <div class="modal-actions">
         ${!currentAccount && !solanaPublicKey && !tronAddress ? '<button type="button" class="btn btn-wallet connect-in-modal">Connect Wallet</button>' : ''}
         <button type="button" class="btn btn-buy btn-buy-pol" ${!canBuyPol || hasToken ? 'disabled' : ''} title="Polygon (MetaMask)">Buy with POL</button>
-        <button type="button" class="btn btn-buy btn-buy-sol" ${!hasSolana || hasToken ? 'disabled' : ''} title="Solana (Phantom)">Buy with SOL</button>
-        <button type="button" class="btn btn-buy btn-buy-trx" ${!hasTron || hasToken ? 'disabled' : ''} title="Tron (TronLink)">Buy with TRX</button>
+        <button type="button" class="btn btn-buy btn-buy-sol" ${hasToken ? 'disabled' : ''} title="Solana (Phantom)">Buy with SOL</button>
+        <button type="button" class="btn btn-buy btn-buy-trx" ${hasToken ? 'disabled' : ''} title="Tron (TronLink)">Buy with TRX</button>
         ${hasToken ? '<button type="button" class="btn btn-download btn-download-asset">Download</button>' : ''}
       </div>
       <div class="payment-status" id="paymentStatus" style="display:none;"></div>
@@ -367,7 +367,7 @@
       setPaymentStatus('Switching network…', 'pending');
       await ensurePolygon();
     } catch (e) {
-      setPaymentStatus('Wrong network. Please switch to Polygon.', 'error');
+      setPaymentStatus('Pre platbu POL musí byť MetaMask na sieti Polygon. V MetaMaske zvoľ sieť → Polygon Mainnet (prípadne ju najprv pridaj).', 'error');
       return;
     }
 
@@ -404,7 +404,7 @@
 
   async function buyWithSol(asset) {
     if (typeof window.solana === 'undefined') {
-      setPaymentStatus('Phantom (Solana) wallet is required.', 'error');
+      setPaymentStatus('Pre platbu SOL nainštaluj peňaženku Phantom (phantom.app) a obnov stránku.', 'error');
       return;
     }
     if (!solanaPublicKey) {
@@ -465,7 +465,7 @@
 
   async function buyWithTrx(asset) {
     if (typeof window.tronLink === 'undefined') {
-      setPaymentStatus('TronLink is required.', 'error');
+      setPaymentStatus('Pre platbu TRX nainštaluj rozšírenie TronLink (tronlink.org) a obnov stránku.', 'error');
       return;
     }
     if (!tronAddress || !tronWeb) {
