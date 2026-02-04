@@ -276,7 +276,7 @@
         </div>
       `;
       card.querySelector('.btn-view').addEventListener('click', () => openModal(asset));
-      card.querySelector('.btn-share-card').addEventListener('click', (e) => { e.stopPropagation(); copyImageLink(asset); });
+      card.querySelector('.btn-share-card').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); copyImageLink(asset); });
       galleryGrid.appendChild(card);
     });
   }
@@ -314,22 +314,50 @@
     return imgPath.startsWith('http') ? imgPath : base + (imgPath.startsWith('/') ? '' : '/') + imgPath;
   }
 
-  async function copyImageLink(asset) {
-    const imageUrl = getImageUrl(asset);
-    try {
-      await navigator.clipboard.writeText(imageUrl);
+  function copyImageLink(asset) {
+    var imageUrl = getImageUrl(asset);
+
+    function done() {
       if (modalOverlay.getAttribute('aria-hidden') === 'false' && modalContent.querySelector('#paymentStatus')) {
-        setPaymentStatus('Odkaz na obrázok skopírovaný.', 'success');
-        setTimeout(function () { setPaymentStatus(''); }, 2000);
+        setPaymentStatus('Odkaz skopírovaný (len text linku).', 'success');
+        setTimeout(function () { setPaymentStatus(''); }, 2500);
       } else {
-        alert('Odkaz na obrázok skopírovaný.');
+        alert('Odkaz skopírovaný (len text linku).');
       }
-    } catch (_) {
+    }
+
+    function fail() {
       if (modalOverlay.getAttribute('aria-hidden') === 'false' && modalContent.querySelector('#paymentStatus')) {
         setPaymentStatus('Odkaz: ' + imageUrl, 'success');
       } else {
         alert('Odkaz: ' + imageUrl);
       }
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(imageUrl).then(done).catch(function () {
+        copyFallback(imageUrl, done, fail);
+      });
+    } else {
+      copyFallback(imageUrl, done, fail);
+    }
+  }
+
+  function copyFallback(text, onSuccess, onFail) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      ta.style.top = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      var ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) onSuccess(); else onFail();
+    } catch (_) {
+      onFail();
     }
   }
 
@@ -380,7 +408,11 @@
     modalContent.querySelector('.btn-download-asset')?.addEventListener('click', () => {
       downloadAsset(asset);
     });
-    modalContent.querySelector('.btn-share-overlay')?.addEventListener('click', () => copyImageLink(asset));
+    modalContent.querySelector('.btn-share-overlay')?.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      copyImageLink(asset);
+    });
   }
 
   function setPaymentStatus(text, className) {
