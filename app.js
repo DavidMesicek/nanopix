@@ -313,8 +313,14 @@
     return imgPath.startsWith('http') ? imgPath : base + (imgPath.startsWith('/') ? '' : '/') + imgPath;
   }
 
+  function getPageLinkForAsset(asset) {
+    var base = window.location.origin + (window.location.pathname || '/');
+    if (!base.endsWith('/') && !base.endsWith('.html')) base = base.replace(/[^/]+$/, '') || '/';
+    return base.replace(/\/$/, '') + '#' + encodeURIComponent(asset.id);
+  }
+
   function copyImageLink(asset) {
-    var imageUrl = getImageUrl(asset);
+    var pageLink = getPageLinkForAsset(asset);
 
     function done() {
       if (modalOverlay.getAttribute('aria-hidden') === 'false' && modalContent.querySelector('#paymentStatus')) {
