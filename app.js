@@ -34,6 +34,7 @@
   const tickerStale = el('tickerStale');
   const connectWalletBtn = el('connectWalletBtn');
   const walletInfo = el('walletInfo');
+  const walletNetworkEl = el('walletNetwork');
   const galleryGrid = el('galleryGrid');
   const modalOverlay = el('modalOverlay');
   const modalContent = el('modalContent');
@@ -103,39 +104,80 @@
 
   async function connectWallet() {
     if (typeof window.ethereum === 'undefined') {
-      alert('MetaMask (or another Web3 wallet) is required. Please install it.');
+      alert('MetaMask (alebo iná Web3 peňaženka) je potrebná. Nainštaluj ju.');
       return;
     }
     try {
       provider = new ethers.BrowserProvider(window.ethereum);
       const accounts = await provider.send('eth_requestAccounts', []);
-      if (!accounts || accounts.length === 0) throw new Error('No accounts');
+      if (!accounts || accounts.length === 0) throw new Error('Žiadne účty');
       currentAccount = accounts[0];
-      signer = await provider.getSigner();
       await ensurePolygon();
+      signer = await provider.getSigner();
       updateWalletUI();
+      await updateNetworkDisplay();
       if (modalOverlay.getAttribute('aria-hidden') === 'false') {
         renderModalContent(getCurrentModalAsset());
       }
     } catch (e) {
       console.error(e);
-      alert('Failed to connect: ' + (e.message || String(e)));
+      alert('Pripojenie zlyhalo: ' + (e.message || String(e)));
+    }
+  }
+
+  function disconnectWallet() {
+    currentAccount = null;
+    signer = null;
+    provider = null;
+    updateWalletUI();
+    if (walletNetworkEl) {
+      walletNetworkEl.textContent = '';
+      walletNetworkEl.className = 'wallet-network';
+    }
+    if (modalOverlay.getAttribute('aria-hidden') === 'false') {
+      renderModalContent(getCurrentModalAsset());
+    }
+  }
+
+  async function updateNetworkDisplay() {
+    if (!walletNetworkEl) return;
+    if (!provider || !currentAccount) {
+      walletNetworkEl.textContent = '';
+      walletNetworkEl.className = 'wallet-network';
+      return;
+    }
+    try {
+      const network = await provider.getNetwork();
+      const chainId = Number(network.chainId);
+      if (chainId === POLYGON_CHAIN_ID) {
+        walletNetworkEl.textContent = ' · Polygon';
+        walletNetworkEl.className = 'wallet-network';
+      } else {
+        walletNetworkEl.textContent = ' · Iná sieť (prepni na Polygon v MetaMaske)';
+        walletNetworkEl.className = 'wallet-network wrong-network';
+      }
+    } catch (_) {
+      walletNetworkEl.textContent = '';
     }
   }
 
   function updateWalletUI() {
     if (currentAccount) {
-      connectWalletBtn.textContent = 'Connected (EVM)';
+      connectWalletBtn.textContent = 'Odpojiť';
       connectWalletBtn.classList.add('connected');
       walletInfo.textContent = currentAccount.slice(0, 6) + '…' + currentAccount.slice(-4);
     } else if (solanaPublicKey) {
-      connectWalletBtn.textContent = 'Connected (Solana)';
+      connectWalletBtn.textContent = 'Odpojiť';
       connectWalletBtn.classList.add('connected');
       walletInfo.textContent = solanaPublicKey.slice(0, 6) + '…' + solanaPublicKey.slice(-4);
     } else {
       connectWalletBtn.textContent = 'Connect Wallet';
       connectWalletBtn.classList.remove('connected');
       walletInfo.textContent = '';
+    }
+    if (!currentAccount && walletNetworkEl) {
+      walletNetworkEl.textContent = '';
+      walletNetworkEl.className = 'wallet-network';
     }
   }
 
@@ -488,20 +530,49 @@
     if (e.target === modalOverlay) closeModal();
   });
 
-  connectWalletBtn.addEventListener('click', connectWallet);
+  connectWalletBtn.addEventListener('click', function () {
+    if (currentAccount) {
+      disconnectWallet();
+      return;
+    }
+    if (solanaPublicKey) {
+      solanaPublicKey = null;
+      updateWalletUI();
+      if (modalOverlay.getAttribute('aria-hidden') === 'false') renderModalContent(getCurrentModalAsset());
+      return;
+    }
+    connectWallet();
+  });
 
   window.ethereum?.on?.('accountsChanged', async (accounts) => {
     currentAccount = accounts && accounts[0] ? accounts[0] : null;
     signer = null;
     provider = currentAccount ? new ethers.BrowserProvider(window.ethereum) : null;
-    if (provider && currentAccount) signer = await provider.getSigner();
+    if (provider && currentAccount) {
+      try {
+        const net = await provider.getNetwork();
+        if (Number(net.chainId) === POLYGON_CHAIN_ID) signer = await provider.getSigner();
+      } catch (_) {}
+    }
     updateWalletUI();
+    await updateNetworkDisplay();
     if (currentModalAsset && modalContent.dataset.assetId === currentModalAsset.id) {
       renderModalContent(currentModalAsset);
     }
   });
 
-  window.ethereum?.on?.('chainChanged', () => {
+  window.ethereum?.on?.('chainChanged', async () => {
+    if (!currentAccount) return;
+    provider = new ethers.BrowserProvider(window.ethereum);
+    try {
+      const net = await provider.getNetwork();
+      if (Number(net.chainId) === POLYGON_CHAIN_ID) signer = await provider.getSigner();
+      else signer = null;
+    } catch (_) {
+      signer = null;
+    }
+    updateWalletUI();
+    await updateNetworkDisplay();
     if (currentModalAsset && modalContent.dataset.assetId === currentModalAsset.id) {
       renderModalContent(currentModalAsset);
     }
@@ -527,4 +598,18 @@
   loadTokensFromSession();
   loadAssets();
   updateWalletUI();
+
+  if (typeof window.ethereum !== 'undefined') {
+    window.ethereum.request({ method: 'eth_accounts' }).then(async function (accounts) {
+      if (!accounts || accounts.length === 0) return;
+      provider = new ethers.BrowserProvider(window.ethereum);
+      currentAccount = accounts[0];
+      try {
+        const net = await provider.getNetwork();
+        if (Number(net.chainId) === POLYGON_CHAIN_ID) signer = await provider.getSigner();
+      } catch (_) {}
+      updateWalletUI();
+      await updateNetworkDisplay();
+    }).catch(function () {});
+  }
 })();

@@ -110,6 +110,15 @@ body {
   text-overflow: ellipsis;
 }
 
+.wallet-network {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.wallet-network.wrong-network {
+  color: #f59e0b;
+}
+
 /* Main / Gallery */
 .main {
   padding: 1.5rem;
