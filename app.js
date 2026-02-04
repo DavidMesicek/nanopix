@@ -389,7 +389,7 @@
       <h2 class="modal-title" id="modalTitle">${escapeHtml(asset.title)}</h2>
       <div class="modal-preview-wrap">
         <img class="modal-preview" src="${escapeAttr(asset.previewUrl || asset.thumbUrl || '')}" alt="${escapeHtml(asset.title)}" />
-        <button type="button" class="btn-share-overlay" aria-label="Skopírovať odkaz na obrázok" title="Skopírovať odkaz na obrázok">${SHARE_ICON_SVG}</button>
+        <button type="button" class="btn-share-overlay" aria-label="Skopírovať odkaz na obrázok" title="Skopírovať odkaz na obrázok">${SHARE_ICON_SVG}<span class="btn-share-overlay-label">Kopírovať link</span></button>
       </div>
       <p class="modal-description">${escapeHtml(asset.description || '')}</p>
       <p class="modal-price">${escapeHtml(asset.pricePol)} POL &nbsp;|&nbsp; ${escapeHtml(asset.priceSol)} SOL</p>
