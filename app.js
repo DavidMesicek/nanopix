@@ -288,6 +288,7 @@
 
   function openModal(asset) {
     currentModalAsset = asset;
+    if (asset && asset.id) window.location.hash = encodeURIComponent(asset.id);
     modalOverlay.setAttribute('aria-hidden', 'false');
     renderModalContent(asset);
   }
@@ -295,6 +296,23 @@
   function closeModal() {
     modalOverlay.setAttribute('aria-hidden', 'true');
     currentModalAsset = null;
+    if (window.history.replaceState) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    } else {
+      window.location.hash = '';
+    }
+  }
+
+  function openModalFromHash() {
+    var hash = window.location.hash.replace(/^#/, '');
+    if (!hash) return;
+    try {
+      var id = decodeURIComponent(hash);
+    } catch (_) {
+      return;
+    }
+    var asset = assets.find(function (a) { return a.id === id; });
+    if (asset) openModal(asset);
   }
 
   function escapeHtml(s) {
@@ -314,9 +332,8 @@
   }
 
   function getPageLinkForAsset(asset) {
-    var base = window.location.origin + (window.location.pathname || '/');
-    if (!base.endsWith('/') && !base.endsWith('.html')) base = base.replace(/[^/]+$/, '') || '/';
-    return base.replace(/\/$/, '') + '#' + encodeURIComponent(asset.id);
+    var base = window.location.href.split('#')[0];
+    return base + '#' + encodeURIComponent(asset.id);
   }
 
   function copyImageLink(asset) {
@@ -333,15 +350,15 @@
 
     function fail() {
       if (modalOverlay.getAttribute('aria-hidden') === 'false' && modalContent.querySelector('#paymentStatus')) {
-        setPaymentStatus('Odkaz: ' + imageUrl, 'success');
+        setPaymentStatus('Odkaz: ' + pageLink, 'success');
       } else {
-        alert('Odkaz: ' + imageUrl);
+        alert('Odkaz: ' + pageLink);
       }
     }
 
     function doCopy() {
       if (navigator.clipboard && navigator.clipboard.write) {
-        var blob = new Blob([imageUrl], { type: 'text/plain' });
+        var blob = new Blob([pageLink], { type: 'text/plain' });
         return navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]).then(done).catch(function () {
           tryCopyText();
         });
@@ -351,11 +368,11 @@
 
     function tryCopyText() {
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(imageUrl).then(done).catch(function () {
-          copyFallback(imageUrl, done, fail);
+        navigator.clipboard.writeText(pageLink).then(done).catch(function () {
+          copyFallback(pageLink, done, fail);
         });
       } else {
-        copyFallback(imageUrl, done, fail);
+        copyFallback(pageLink, done, fail);
       }
     }
 
@@ -731,8 +748,18 @@
 
   loadPrice();
   loadTokensFromSession();
-  loadAssets();
+  loadAssets().then(function () {
+    openModalFromHash();
+  });
   updateWalletUI();
+
+  window.addEventListener('hashchange', function () {
+    if (!window.location.hash) {
+      if (currentModalAsset) closeModal();
+    } else {
+      openModalFromHash();
+    }
+  });
 
   if (typeof window.ethereum !== 'undefined') {
     window.ethereum.request({ method: 'eth_accounts' }).then(async function (accounts) {
