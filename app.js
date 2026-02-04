@@ -172,7 +172,7 @@
 
   async function loadAssets() {
     try {
-      const r = await fetch('assets.json');
+      const r = await fetch('assets.json?v=2');
       if (!r.ok) throw new Error('Catalog load failed');
       const data = await r.json();
       assets = Array.isArray(data) ? data : (data.assets || data.items || []);
@@ -348,7 +348,7 @@
     } catch (e) {
       var msg = e.message || String(e);
       if (e.code === 'INSUFFICIENT_FUNDS' || msg.indexOf('insufficient funds') !== -1) {
-        msg = 'Nedostatočný zostatok POL (vrátane poplatku za plyn). Dopln POL v peňaženke na Polygon.';
+        msg = 'Nedostatočný zostatok POL (vrátane poplatku za plyn). Dopln POL v peňaženke na Polygon (napr. burza alebo bridge na polygon.technology).';
       }
       setPaymentStatus('Transakcia zlyhala: ' + msg, 'error');
       return;

@@ -86,6 +86,11 @@
     B.allocUnsafe = function(size) { return new B(size); };
     B.isBuffer = function(b) { return b && b._u instanceof Uint8Array; };
     B.prototype.slice = function(s, e) { var o = new B(this._u.slice(s, e)); return o; };
+    B.prototype.reverse = function() {
+      var u = this._u, i = 0, j = u.length - 1, t;
+      while (i < j) { t = u[i]; u[i] = u[j]; u[j] = t; i++; j--; }
+      return this;
+    };
     B.prototype.toString = function(enc) {
       if (enc === 'hex') return Array.from(this._u).map(function(x) { return ('0' + x.toString(16)).slice(-2); }).join('');
       return String.fromCharCode.apply(null, this._u);
@@ -98,6 +103,6 @@
   })();
   </script>
   <script src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
