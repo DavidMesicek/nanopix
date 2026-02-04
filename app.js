@@ -3,9 +3,12 @@
   'use strict';
 
   const SITE_NAME = 'NanoPix';
-  const MERCHANT_ADDRESS = '0x0000000000000000000000000000000000000000'; // TODO: set your Polygon address
+  const MERCHANT_ADDRESS = '0x3533F712F75f1513f728D2280eeaedE0B438bc6a'; // Polygon
+  const MERCHANT_SOL_ADDRESS = '6bursz7njR3RjXLRMsjamJoNjf6pigtMjPC6KpLycGSd'; // Solana
+  const MERCHANT_TRX_ADDRESS = 'TAhKGQVs5sXNGQrxbCqucHf23rezkwAo7X'; // Tron
   const POLYGON_CHAIN_ID = 137;
   const POLYGON_CHAIN_ID_HEX = '0x89';
+  const SOLANA_MAINNET = 'https://api.mainnet-beta.solana.com';
   const COINGECKO_IDS = 'polygon-ecosystem-token';
   const PRICE_CACHE_KEY = 'nanopix_pol_price';
   const PRICE_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
@@ -21,6 +24,9 @@
   let provider = null;
   let signer = null;
   let currentAccount = null;
+  let solanaPublicKey = null;
+  let tronAddress = null;
+  let tronWeb = null;
   let assets = [];
   const downloadTokens = new Map(); // assetId -> { token, expiresAt }
 
@@ -121,10 +127,19 @@
   }
 
   function updateWalletUI() {
+    const hasAny = currentAccount || solanaPublicKey || tronAddress;
     if (currentAccount) {
-      connectWalletBtn.textContent = 'Connected';
+      connectWalletBtn.textContent = 'Connected (EVM)';
       connectWalletBtn.classList.add('connected');
       walletInfo.textContent = currentAccount.slice(0, 6) + '…' + currentAccount.slice(-4);
+    } else if (solanaPublicKey) {
+      connectWalletBtn.textContent = 'Connected (Solana)';
+      connectWalletBtn.classList.add('connected');
+      walletInfo.textContent = solanaPublicKey.slice(0, 6) + '…' + solanaPublicKey.slice(-4);
+    } else if (tronAddress) {
+      connectWalletBtn.textContent = 'Connected (Tron)';
+      connectWalletBtn.classList.add('connected');
+      walletInfo.textContent = tronAddress.slice(0, 6) + '…' + tronAddress.slice(-4);
     } else {
       connectWalletBtn.textContent = 'Connect Wallet';
       connectWalletBtn.classList.remove('connected');
@@ -187,7 +202,7 @@
         <img class="card-image" src="${escapeAttr(asset.thumbUrl || asset.previewUrl || '')}" alt="${escapeAttr(asset.title)}" loading="lazy" />
         <div class="card-body">
           <h2 class="card-title">${escapeHtml(asset.title)}</h2>
-          <p class="card-price">${escapeHtml(asset.pricePol)} POL</p>
+          <p class="card-price">${escapeHtml(asset.pricePol)} POL / ${escapeHtml(asset.priceSol)} SOL / ${escapeHtml(asset.priceTrx)} TRX</p>
           <div class="card-actions">
             <button type="button" class="btn btn-view" data-asset-id="${escapeAttr(asset.id)}">View</button>
           </div>
@@ -228,14 +243,16 @@
   function renderModalContent(asset) {
     if (!asset) return;
     const hasToken = !!getDownloadToken(asset.id);
-    const canBuy = currentAccount && signer;
+    const canBuyPol = currentAccount && signer;
+    const hasSolana = typeof window.solana !== 'undefined';
+    const hasTron = typeof window.tronLink !== 'undefined';
     let networkOk = false;
     if (provider) {
       provider.getNetwork().then((n) => {
         networkOk = Number(n.chainId) === POLYGON_CHAIN_ID;
         if (modalContent.dataset.assetId === asset.id) {
-          const buyBtn = modalContent.querySelector('.btn-buy');
-          if (buyBtn) buyBtn.disabled = !networkOk || hasToken;
+          const btn = modalContent.querySelector('.btn-buy-pol');
+          if (btn) btn.disabled = !canBuyPol || !networkOk || hasToken;
         }
       }).catch(() => {});
     }
@@ -245,10 +262,12 @@
       <h2 class="modal-title" id="modalTitle">${escapeHtml(asset.title)}</h2>
       <img class="modal-preview" src="${escapeAttr(asset.previewUrl || asset.thumbUrl || '')}" alt="${escapeHtml(asset.title)}" />
       <p class="modal-description">${escapeHtml(asset.description || '')}</p>
-      <p class="modal-price">${escapeHtml(asset.pricePol)} POL</p>
+      <p class="modal-price">${escapeHtml(asset.pricePol)} POL &nbsp;|&nbsp; ${escapeHtml(asset.priceSol)} SOL &nbsp;|&nbsp; ${escapeHtml(asset.priceTrx)} TRX</p>
       <div class="modal-actions">
-        ${!currentAccount ? '<button type="button" class="btn btn-wallet connect-in-modal">Connect Wallet</button>' : ''}
-        <button type="button" class="btn btn-buy btn-buy-pol" ${!canBuy || hasToken ? 'disabled' : ''}>Buy with POL</button>
+        ${!currentAccount && !solanaPublicKey && !tronAddress ? '<button type="button" class="btn btn-wallet connect-in-modal">Connect Wallet</button>' : ''}
+        <button type="button" class="btn btn-buy btn-buy-pol" ${!canBuyPol || hasToken ? 'disabled' : ''} title="Polygon (MetaMask)">Buy with POL</button>
+        <button type="button" class="btn btn-buy btn-buy-sol" ${!hasSolana || hasToken ? 'disabled' : ''} title="Solana (Phantom)">Buy with SOL</button>
+        <button type="button" class="btn btn-buy btn-buy-trx" ${!hasTron || hasToken ? 'disabled' : ''} title="Tron (TronLink)">Buy with TRX</button>
         ${hasToken ? '<button type="button" class="btn btn-download btn-download-asset">Download</button>' : ''}
       </div>
       <div class="payment-status" id="paymentStatus" style="display:none;"></div>
@@ -260,6 +279,12 @@
 
     modalContent.querySelector('.btn-buy-pol')?.addEventListener('click', () => {
       buyWithPol(asset);
+    });
+    modalContent.querySelector('.btn-buy-sol')?.addEventListener('click', () => {
+      buyWithSol(asset);
+    });
+    modalContent.querySelector('.btn-buy-trx')?.addEventListener('click', () => {
+      buyWithTrx(asset);
     });
 
     modalContent.querySelector('.btn-download-asset')?.addEventListener('click', () => {
@@ -275,13 +300,59 @@
     statusEl.className = 'payment-status' + (className ? ' ' + className : '');
   }
 
-  function setPaymentStatusTx(txHash) {
-    const url = `https://polygonscan.com/tx/${txHash}`;
+  function setPaymentStatusTx(txHash, network) {
+    network = network || 'polygon';
+    const explorerUrls = {
+      polygon: 'https://polygonscan.com/tx/',
+      solana: 'https://solscan.io/tx/',
+      tron: 'https://tronscan.org/#/transaction/',
+    };
+    const url = (explorerUrls[network] || explorerUrls.polygon) + txHash;
     const statusEl = modalContent.querySelector('#paymentStatus');
     if (!statusEl) return;
     statusEl.style.display = 'block';
     statusEl.className = 'payment-status success';
-    statusEl.innerHTML = `Tx: <a class="tx-link" href="${url}" target="_blank" rel="noopener">${txHash.slice(0, 10)}…</a>`;
+    statusEl.innerHTML = `Tx: <a class="tx-link" href="${escapeAttr(url)}" target="_blank" rel="noopener">${escapeHtml(txHash.slice(0, 10))}…</a>`;
+  }
+
+  async function connectSolana() {
+    if (typeof window.solana === 'undefined') {
+      alert('Phantom (Solana wallet) is required. Please install it.');
+      return false;
+    }
+    try {
+      const resp = await window.solana.connect();
+      solanaPublicKey = resp.publicKey ? resp.publicKey.toString() : null;
+      updateWalletUI();
+      if (modalOverlay.getAttribute('aria-hidden') === 'false') renderModalContent(getCurrentModalAsset());
+      return !!solanaPublicKey;
+    } catch (e) {
+      console.error(e);
+      alert('Failed to connect Phantom: ' + (e.message || String(e)));
+      return false;
+    }
+  }
+
+  async function connectTron() {
+    if (typeof window.tronLink === 'undefined') {
+      alert('TronLink is required. Please install it.');
+      return false;
+    }
+    try {
+      const res = await window.tronLink.request({ method: 'tron_requestAccounts' });
+      if (res.code === 200 && res.address) {
+        tronAddress = res.address;
+        tronWeb = window.tronLink.tronWeb || null;
+        updateWalletUI();
+        if (modalOverlay.getAttribute('aria-hidden') === 'false') renderModalContent(getCurrentModalAsset());
+        return true;
+      }
+      throw new Error(res.message || 'TronLink connection failed');
+    } catch (e) {
+      console.error(e);
+      alert('Failed to connect TronLink: ' + (e.message || String(e)));
+      return false;
+    }
   }
 
   async function buyWithPol(asset) {
@@ -326,9 +397,118 @@
     }
 
     const txHash = receipt.hash;
-    setPaymentStatusTx(txHash);
-
+    setPaymentStatusTx(txHash, 'polygon');
     setPaymentStatus('Verifying payment with server…', 'pending');
+    await callVerifyAndApplyToken(asset, txHash, currentAccount, 'polygon', POLYGON_CHAIN_ID);
+  }
+
+  async function buyWithSol(asset) {
+    if (typeof window.solana === 'undefined') {
+      setPaymentStatus('Phantom (Solana) wallet is required.', 'error');
+      return;
+    }
+    if (!solanaPublicKey) {
+      const ok = await connectSolana();
+      if (!ok) return;
+    }
+    const merchant = MERCHANT_SOL_ADDRESS;
+    if (!merchant || !merchant.trim()) {
+      setPaymentStatus('Merchant Solana address not configured.', 'error');
+      return;
+    }
+    const statusEl = modalContent.querySelector('#paymentStatus');
+    statusEl.style.display = 'block';
+
+    const amountSol = parseFloat(String(asset.priceSol || '0'));
+    const lamports = Math.floor(amountSol * 1e9);
+    if (lamports <= 0) {
+      setPaymentStatus('Invalid SOL amount.', 'error');
+      return;
+    }
+
+    const connection = new solanaWeb3.Connection(SOLANA_MAINNET);
+    const fromPubkey = new solanaWeb3.PublicKey(solanaPublicKey);
+    const toPubkey = new solanaWeb3.PublicKey(merchant);
+
+    setPaymentStatus('Preparing transaction…', 'pending');
+    let tx;
+    try {
+      const { blockhash } = await connection.getLatestBlockhash();
+      tx = new solanaWeb3.Transaction().add(
+        solanaWeb3.SystemProgram.transfer({
+          fromPubkey,
+          toPubkey,
+          lamports,
+        })
+      );
+      tx.feePayer = fromPubkey;
+      tx.recentBlockhash = blockhash;
+    } catch (e) {
+      setPaymentStatus('Failed to prepare tx: ' + (e.message || String(e)), 'error');
+      return;
+    }
+
+    setPaymentStatus('Confirm transaction in Phantom…', 'pending');
+    let txHash;
+    try {
+      const signed = await window.solana.signTransaction(tx);
+      txHash = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
+    } catch (e) {
+      setPaymentStatus('Transaction rejected or failed: ' + (e.message || String(e)), 'error');
+      return;
+    }
+
+    setPaymentStatusTx(txHash, 'solana');
+    setPaymentStatus('Verifying payment with server…', 'pending');
+    await callVerifyAndApplyToken(asset, txHash, solanaPublicKey, 'solana', 0);
+  }
+
+  async function buyWithTrx(asset) {
+    if (typeof window.tronLink === 'undefined') {
+      setPaymentStatus('TronLink is required.', 'error');
+      return;
+    }
+    if (!tronAddress || !tronWeb) {
+      const ok = await connectTron();
+      if (!ok) return;
+    }
+    const merchant = MERCHANT_TRX_ADDRESS;
+    if (!merchant || !merchant.trim()) {
+      setPaymentStatus('Merchant Tron address not configured.', 'error');
+      return;
+    }
+    const statusEl = modalContent.querySelector('#paymentStatus');
+    statusEl.style.display = 'block';
+
+    const amountTrx = parseFloat(String(asset.priceTrx || '0'));
+    const amountSun = Math.floor(amountTrx * 1e6);
+    if (amountSun <= 0) {
+      setPaymentStatus('Invalid TRX amount.', 'error');
+      return;
+    }
+
+    setPaymentStatus('Confirm transaction in TronLink…', 'pending');
+    let txHash;
+    try {
+      const tx = await tronWeb.transactionBuilder.sendTrx(merchant, amountSun, tronAddress);
+      const signed = await tronWeb.trx.sign(tx);
+      const result = await tronWeb.trx.sendRawTransaction(signed);
+      if (!result.result || result.result !== true) {
+        throw new Error(result.message || 'Broadcast failed');
+      }
+      txHash = result.txid || result.transaction?.txID;
+      if (!txHash) throw new Error('No tx id returned');
+    } catch (e) {
+      setPaymentStatus('Transaction rejected or failed: ' + (e.message || String(e)), 'error');
+      return;
+    }
+
+    setPaymentStatusTx(txHash, 'tron');
+    setPaymentStatus('Verifying payment with server…', 'pending');
+    await callVerifyAndApplyToken(asset, txHash, tronAddress, 'tron', 0);
+  }
+
+  async function callVerifyAndApplyToken(asset, txHash, walletAddress, network, chainId) {
     const base = getApiBase();
     let res;
     try {
@@ -338,21 +518,20 @@
         body: JSON.stringify({
           txHash,
           assetId: asset.id,
-          walletAddress: currentAccount,
-          chainId: POLYGON_CHAIN_ID,
+          walletAddress,
+          chainId: chainId || (network === 'polygon' ? POLYGON_CHAIN_ID : 0),
+          network: network,
         }),
       });
     } catch (e) {
       setPaymentStatus('Backend unavailable. Please try again later.', 'error');
       return;
     }
-
     if (!res.ok) {
       const errText = await res.text();
       setPaymentStatus('Verification failed: ' + (errText || res.status), 'error');
       return;
     }
-
     let data;
     try {
       data = await res.json();
@@ -360,14 +539,12 @@
       setPaymentStatus('Invalid response from server.', 'error');
       return;
     }
-
     const token = data.downloadToken;
     const expiresAt = data.expiresAt || null;
     if (!token) {
       setPaymentStatus('Server did not return a download token.', 'error');
       return;
     }
-
     setDownloadToken(asset.id, token, expiresAt);
     setPaymentStatus('Purchase confirmed. You can download below.', 'success');
     renderModalContent(asset);
@@ -403,6 +580,22 @@
   });
 
   window.ethereum?.on?.('chainChanged', () => {
+    if (currentModalAsset && modalContent.dataset.assetId === currentModalAsset.id) {
+      renderModalContent(currentModalAsset);
+    }
+  });
+
+  window.solana?.on?.('accountChanged', (key) => {
+    solanaPublicKey = key ? key.toString() : null;
+    updateWalletUI();
+    if (currentModalAsset && modalContent.dataset.assetId === currentModalAsset.id) {
+      renderModalContent(currentModalAsset);
+    }
+  });
+
+  window.solana?.on?.('disconnect', () => {
+    solanaPublicKey = null;
+    updateWalletUI();
     if (currentModalAsset && modalContent.dataset.assetId === currentModalAsset.id) {
       renderModalContent(currentModalAsset);
     }
