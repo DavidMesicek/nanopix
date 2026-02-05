@@ -441,7 +441,7 @@
         <img class="modal-preview" src="${escapeAttr(resolveAssetUrl(asset.previewUrl || asset.thumbUrl || ''))}" alt="${escapeHtml(asset.title)}" />
         <button type="button" class="btn-share-overlay" aria-label="Share" title="Share – copy link to this page with image">${SHARE_ICON_SVG}<span class="btn-share-overlay-label">Share</span></button>
       </div>
-      <p class="modal-description">${escapeHtml(asset.description || '')}</p>
+      <p class="modal-description modal-dimensions">— × — px</p>
       <p class="modal-price"><img class="price-polygon-logo" src="${escapeAttr(getSiteBase() + 'polygon.png')}" alt="Polygon" />${escapeHtml(asset.pricePol)} POL</p>
       <div class="modal-actions">
         ${!currentAccount ? '<button type="button" class="btn btn-wallet connect-pol-in-modal">Connect POL</button>' : ''}
@@ -466,6 +466,18 @@
       e.stopPropagation();
       copyImageLink(asset);
     });
+
+    var modalImg = modalContent.querySelector('.modal-preview');
+    var dimensionsEl = modalContent.querySelector('.modal-dimensions');
+    if (modalImg && dimensionsEl) {
+      function setDimensions() {
+        if (modalImg.naturalWidth && modalImg.naturalHeight) {
+          dimensionsEl.textContent = modalImg.naturalWidth + ' × ' + modalImg.naturalHeight + ' px';
+        }
+      }
+      if (modalImg.complete) setDimensions();
+      else modalImg.addEventListener('load', setDimensions);
+    }
   }
 
   function setPaymentStatus(text, className) {
