@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Allow eval required by ethers.js from CDN; remove if your host already allows it -->
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://cdn.jsdelivr.net 'unsafe-eval'; object-src 'none'; base-uri 'self';">
   <title>NanoPix – Buy images with POL (Polygon)</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
