@@ -423,6 +423,19 @@ body {
   text-decoration: underline;
 }
 
+.page-license {
+  text-align: right;
+  padding: 1.5rem 1.5rem 0.75rem;
+  margin-top: auto;
+}
+
+.page-license-text {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  opacity: 0.7;
+  letter-spacing: 0.02em;
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .header {
@@ -435,5 +448,11 @@ body {
   }
   .gallery-grid {
     grid-template-columns: 1fr;
+  }
+  .page-license {
+    padding: 1rem 1rem 0.5rem;
+  }
+  .page-license-text {
+    font-size: 0.6rem;
   }
 }
