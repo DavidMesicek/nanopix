@@ -708,6 +708,7 @@
     });
   }
 
+  var ethInit = getEthereumProvider();
   if (ethInit) {
     ethInit.request({ method: 'eth_accounts' }).then(async function (accounts) {
       if (!accounts || accounts.length === 0) return;
