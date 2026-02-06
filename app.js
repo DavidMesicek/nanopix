@@ -8,8 +8,11 @@
   const POLYGON_CHAIN_ID_HEX = '0x89';
   const COINGECKO_IDS = 'polygon-ecosystem-token';
   const PRICE_CACHE_KEY = 'nanopix_pol_price';
-  const PRICE_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
   const PRICE_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+  const PRICE_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
+  const PRICE_EUR = 0.10;
+
+  let currentPolPriceEur = null;
 
   const POLYGON_PARAMS = {
     chainId: POLYGON_CHAIN_ID_HEX,
@@ -66,12 +69,29 @@
     return getSiteBase() + url.replace(/^\//, '');
   }
 
+  function setPolPriceEur(eur) {
+    currentPolPriceEur = eur != null ? Number(eur) : null;
+    if (currentPolPriceEur && galleryGrid.innerHTML && assets.length) {
+      renderGallery();
+      if (modalOverlay.getAttribute('aria-hidden') === 'false' && currentModalAsset) {
+        renderModalContent(currentModalAsset);
+      }
+    }
+  }
+
+  function getPricePol(priceEur) {
+    priceEur = priceEur != null ? Number(priceEur) : PRICE_EUR;
+    if (currentPolPriceEur == null || currentPolPriceEur <= 0) return null;
+    return priceEur / currentPolPriceEur;
+  }
+
   function loadPrice() {
     const cached = localStorage.getItem(PRICE_CACHE_KEY);
     if (cached) {
       try {
         const { usd, eur, ts } = JSON.parse(cached);
         const age = Date.now() - ts;
+        currentPolPriceEur = eur != null ? Number(eur) : null;
         tickerUsd.textContent = usd != null ? `$${Number(usd).toFixed(4)}` : '—';
         tickerEur.textContent = eur != null ? `€${Number(eur).toFixed(4)}` : '—';
         if (age > PRICE_CACHE_MAX_AGE_MS) {
@@ -94,6 +114,7 @@
           const usd = pet.usd ?? null;
           const eur = pet.eur ?? null;
           localStorage.setItem(PRICE_CACHE_KEY, JSON.stringify({ usd, eur, ts: Date.now() }));
+          setPolPriceEur(eur);
           tickerUsd.textContent = usd != null ? `$${Number(usd).toFixed(4)}` : '—';
           tickerEur.textContent = eur != null ? `€${Number(eur).toFixed(4)}` : '—';
           tickerStale.textContent = '';
@@ -277,7 +298,11 @@
 
   function renderGallery() {
     galleryGrid.innerHTML = '';
+    var priceEur = PRICE_EUR;
     assets.forEach((asset) => {
+      var assetPriceEur = asset.priceEur != null ? Number(asset.priceEur) : priceEur;
+      var polAmount = getPricePol(assetPriceEur);
+      var priceStr = polAmount != null ? (polAmount.toFixed(4) + ' POL · €0.10') : '— POL · €0.10';
       const card = document.createElement('article');
       card.className = 'card';
       card.innerHTML = `
@@ -287,7 +312,7 @@
         </div>
         <div class="card-body">
           <h2 class="card-title">${escapeHtml(asset.title)}</h2>
-          <p class="card-price"><img class="price-polygon-logo" src="${escapeAttr(getSiteBase() + 'polygon.png')}" alt="Polygon" />${escapeHtml(asset.pricePol)} POL</p>
+          <p class="card-price"><img class="price-polygon-logo" src="${escapeAttr(getSiteBase() + 'polygon.png')}" alt="Polygon" />${escapeHtml(priceStr)}</p>
           <div class="card-actions">
             <button type="button" class="btn btn-view" data-asset-id="${escapeAttr(asset.id)}">View</button>
           </div>
@@ -434,6 +459,9 @@
       }).catch(() => {});
     }
 
+    var modalPriceEur = asset.priceEur != null ? Number(asset.priceEur) : PRICE_EUR;
+    var modalPolAmount = getPricePol(modalPriceEur);
+    var modalPriceStr = modalPolAmount != null ? (modalPolAmount.toFixed(4) + ' POL · €0.10') : '— POL · €0.10';
     modalContent.dataset.assetId = asset.id;
     modalContent.innerHTML = `
       <h2 class="modal-title" id="modalTitle">${escapeHtml(asset.title)}</h2>
@@ -442,7 +470,7 @@
         <button type="button" class="btn-share-overlay" aria-label="Share" title="Share – copy link to this page with image">${SHARE_ICON_SVG}<span class="btn-share-overlay-label">Share</span></button>
       </div>
       <p class="modal-description modal-dimensions" id="modalDimensions">${asset.width && asset.height ? (asset.width + ' × ' + asset.height + ' px') : '— × — px'}</p>
-      <p class="modal-price"><img class="price-polygon-logo" src="${escapeAttr(getSiteBase() + 'polygon.png')}" alt="Polygon" />${escapeHtml(asset.pricePol)} POL</p>
+      <p class="modal-price"><img class="price-polygon-logo" src="${escapeAttr(getSiteBase() + 'polygon.png')}" alt="Polygon" />${escapeHtml(modalPriceStr)}</p>
       <div class="modal-actions">
         ${!currentAccount ? '<button type="button" class="btn btn-wallet connect-pol-in-modal">Connect POL</button>' : ''}
         <button type="button" class="btn btn-buy btn-buy-pol" ${!canBuyPol || hasToken ? 'disabled' : ''} title="Polygon (MetaMask)">Buy with POL</button>
@@ -518,7 +546,13 @@
     signer = await provider.getSigner();
     currentAccount = (await signer.getAddress()).toLowerCase();
 
-    const valueWei = ethers.parseEther(String(asset.pricePol));
+    var priceEurForPay = asset.priceEur != null ? Number(asset.priceEur) : PRICE_EUR;
+    var polAmountForPay = getPricePol(priceEurForPay);
+    if (polAmountForPay == null || polAmountForPay <= 0) {
+      setPaymentStatus('Price unavailable. Wait for POL rate to load and try again.', 'error');
+      return;
+    }
+    const valueWei = ethers.parseEther(String(polAmountForPay));
     const merchant = MERCHANT_ADDRESS;
     if (!merchant || merchant === '0x0000000000000000000000000000000000000000') {
       setPaymentStatus('Merchant address not configured.', 'error');
@@ -541,7 +575,7 @@
     } catch (e) {
       var msg = e.message || String(e);
       if (e.code === 'INSUFFICIENT_FUNDS' || msg.indexOf('insufficient funds') !== -1) {
-        msg = 'This account: ' + currentAccount + '. Balance on Polygon: ' + (balanceWei !== undefined ? ethers.formatEther(balanceWei) + ' POL' : '?') + '. You need at least ' + asset.pricePol + ' POL + gas. If MetaMask shows a different balance, select the account that has POL (account icon at top).';
+        msg = 'This account: ' + currentAccount + '. Balance on Polygon: ' + (balanceWei !== undefined ? ethers.formatEther(balanceWei) + ' POL' : '?') + '. You need at least ' + polAmountForPay.toFixed(4) + ' POL + gas. If MetaMask shows a different balance, select the account that has POL (account icon at top).';
       }
       setPaymentStatus('Transaction failed: ' + msg, 'error');
       return;
