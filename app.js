@@ -302,7 +302,7 @@
     assets.forEach((asset) => {
       var assetPriceEur = asset.priceEur != null ? Number(asset.priceEur) : priceEur;
       var polAmount = getPricePol(assetPriceEur);
-      var priceStr = polAmount != null ? (polAmount.toFixed(4) + ' POL · €0.10') : '— POL · €0.10';
+      var priceStr = polAmount != null ? (polAmount.toFixed(4) + ' POL') : '— POL';
       const card = document.createElement('article');
       card.className = 'card';
       card.innerHTML = `
@@ -461,7 +461,7 @@
 
     var modalPriceEur = asset.priceEur != null ? Number(asset.priceEur) : PRICE_EUR;
     var modalPolAmount = getPricePol(modalPriceEur);
-    var modalPriceStr = modalPolAmount != null ? (modalPolAmount.toFixed(4) + ' POL · €0.10') : '— POL · €0.10';
+    var modalPriceStr = modalPolAmount != null ? (modalPolAmount.toFixed(4) + ' POL') : '— POL';
     modalContent.dataset.assetId = asset.id;
     modalContent.innerHTML = `
       <h2 class="modal-title" id="modalTitle">${escapeHtml(asset.title)}</h2>
