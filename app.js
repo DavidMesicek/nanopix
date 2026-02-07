@@ -38,7 +38,14 @@
   let signer = null;
   let currentAccount = null;
   let assets = [];
+  let currentNavFilter = null;
   const downloadTokens = new Map(); // assetId -> { token, expiresAt }
+
+  function getDisplayTitle(asset) {
+    var t = asset.title || '';
+    var m = t.match(/^\d+\.\s*(.+)$/);
+    return m ? m[1] : t;
+  }
 
   const el = (id) => document.getElementById(id);
   const priceTicker = el('priceTicker');
@@ -301,6 +308,24 @@
   function renderNav() {
     if (!navPanel) return;
     navPanel.innerHTML = '';
+    var allLink = document.createElement('a');
+    allLink.href = '#';
+    allLink.textContent = 'All';
+    allLink.className = currentNavFilter === null ? 'active' : '';
+    allLink.addEventListener('click', function (e) {
+      e.preventDefault();
+      currentNavFilter = null;
+      navPanel.querySelectorAll('a').forEach(function (l) { l.classList.remove('active'); });
+      allLink.classList.add('active');
+      renderGallery();
+    });
+    allLink.setAttribute('data-nav', 'all');
+    var allTitle = document.createElement('div');
+    allTitle.className = 'nav-title';
+    allTitle.textContent = 'Catalog';
+    navPanel.appendChild(allTitle);
+    navPanel.appendChild(allLink);
+
     assets.forEach(function (asset, i) {
       if (i === 0) {
         var title = document.createElement('div');
@@ -320,11 +345,14 @@
       }
       var a = document.createElement('a');
       a.href = '#asset-' + encodeURIComponent(asset.id);
-      a.textContent = asset.title;
+      a.textContent = getDisplayTitle(asset);
+      if (currentNavFilter === asset.id) a.classList.add('active');
       a.addEventListener('click', function (e) {
         e.preventDefault();
-        var el = document.getElementById('asset-' + asset.id);
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        currentNavFilter = asset.id;
+        navPanel.querySelectorAll('a').forEach(function (l) { l.classList.remove('active'); });
+        a.classList.add('active');
+        renderGallery();
       });
       navPanel.appendChild(a);
     });
@@ -332,21 +360,23 @@
 
   function renderGallery() {
     galleryGrid.innerHTML = '';
+    var list = currentNavFilter ? assets.filter(function (a) { return a.id === currentNavFilter; }) : assets;
     var priceEur = PRICE_EUR;
-    assets.forEach((asset) => {
+    list.forEach((asset) => {
       var assetPriceEur = asset.priceEur != null ? Number(asset.priceEur) : priceEur;
       var polAmount = getPricePol(assetPriceEur);
       var priceStr = polAmount != null ? (polAmount.toFixed(4) + ' POL') : '— POL';
+      var displayTitle = getDisplayTitle(asset);
       const card = document.createElement('article');
       card.className = 'card';
       card.id = 'asset-' + asset.id;
       card.innerHTML = `
         <div class="card-image-wrap">
-          <img class="card-image" src="${escapeAttr(resolveAssetUrl(asset.thumbUrl || asset.previewUrl || ''))}" alt="${escapeAttr(asset.title)}" loading="lazy" />
+          <img class="card-image" src="${escapeAttr(resolveAssetUrl(asset.thumbUrl || asset.previewUrl || ''))}" alt="${escapeAttr(displayTitle)}" loading="lazy" />
           <button type="button" class="btn-share-card" aria-label="Share" title="Share">${SHARE_ICON_SVG}</button>
         </div>
         <div class="card-body">
-          <h2 class="card-title">${escapeHtml(asset.title)}</h2>
+          <h2 class="card-title">${escapeHtml(displayTitle)}</h2>
           <p class="card-price"><img class="price-polygon-logo" src="${escapeAttr(getSiteBase() + 'polygon.png')}" alt="Polygon" />${escapeHtml(priceStr)}</p>
           <div class="card-actions">
             <button type="button" class="btn btn-view" data-asset-id="${escapeAttr(asset.id)}">View</button>
@@ -497,9 +527,10 @@
     var modalPriceEur = asset.priceEur != null ? Number(asset.priceEur) : PRICE_EUR;
     var modalPolAmount = getPricePol(modalPriceEur);
     var modalPriceStr = modalPolAmount != null ? (modalPolAmount.toFixed(4) + ' POL') : '— POL';
+    var modalDisplayTitle = getDisplayTitle(asset);
     modalContent.dataset.assetId = asset.id;
     modalContent.innerHTML = `
-      <h2 class="modal-title" id="modalTitle">${escapeHtml(asset.title)}</h2>
+      <h2 class="modal-title" id="modalTitle">${escapeHtml(modalDisplayTitle)}</h2>
       <div class="modal-preview-wrap">
         <img class="modal-preview" src="${escapeAttr(resolveAssetUrl(asset.previewUrl || asset.thumbUrl || ''))}" alt="${escapeHtml(asset.title)}" />
         <button type="button" class="btn-share-overlay" aria-label="Share" title="Share – copy link to this page with image">${SHARE_ICON_SVG}<span class="btn-share-overlay-label">Share</span></button>
