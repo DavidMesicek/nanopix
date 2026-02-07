@@ -46,6 +46,13 @@
     return t.replace(/^\d+\.\s*/, '') || t;
   }
 
+  function getAssetFormat(asset) {
+    var s = (asset.filename || asset.previewUrl || asset.thumbUrl || asset.downloadUrl || '').trim();
+    var i = s.lastIndexOf('.');
+    if (i >= 0 && i < s.length - 1) return s.slice(i + 1).toUpperCase();
+    return '';
+  }
+
   const el = (id) => document.getElementById(id);
   const priceTicker = el('priceTicker');
   const tickerUsd = el('tickerUsd');
@@ -525,6 +532,8 @@
     var modalPolAmount = getPricePol(modalPriceEur);
     var modalPriceStr = modalPolAmount != null ? (modalPolAmount.toFixed(4) + ' POL') : '— POL';
     var modalDisplayTitle = getDisplayTitle(asset);
+    var assetFormat = getAssetFormat(asset);
+    var formatSuffix = assetFormat ? ' · ' + assetFormat : '';
     modalContent.dataset.assetId = asset.id;
     modalContent.innerHTML = `
       <h2 class="modal-title" id="modalTitle">${escapeHtml(modalDisplayTitle)}</h2>
@@ -532,7 +541,7 @@
         <img class="modal-preview" src="${escapeAttr(resolveAssetUrl(asset.previewUrl || asset.thumbUrl || ''))}" alt="${escapeHtml(asset.title)}" />
         <button type="button" class="btn-share-overlay" aria-label="Share" title="Share – copy link to this page with image">${SHARE_ICON_SVG}<span class="btn-share-overlay-label">Share</span></button>
       </div>
-      <p class="modal-description modal-dimensions" id="modalDimensions">${asset.width && asset.height ? (asset.width + ' × ' + asset.height + ' px') : '— × — px'}</p>
+      <p class="modal-description modal-dimensions" id="modalDimensions">${asset.width && asset.height ? (asset.width + ' × ' + asset.height + ' px') : '— × — px'}${formatSuffix}</p>
       <p class="modal-price"><img class="price-polygon-logo" src="${escapeAttr(getSiteBase() + 'polygon.png')}" alt="Polygon" />${escapeHtml(modalPriceStr)}</p>
       <div class="modal-actions">
         ${!currentAccount ? '<button type="button" class="btn btn-wallet connect-pol-in-modal">Connect POL</button>' : ''}
@@ -564,7 +573,7 @@
       function setDimensions() {
         var w = modalImg.naturalWidth || modalImg.width || 0;
         var h = modalImg.naturalHeight || modalImg.height || 0;
-        if (w && h) dimensionsEl.textContent = w + ' × ' + h + ' px';
+        if (w && h) dimensionsEl.textContent = w + ' × ' + h + ' px' + formatSuffix;
       }
       modalImg.addEventListener('load', setDimensions);
       if (modalImg.complete) setDimensions();
