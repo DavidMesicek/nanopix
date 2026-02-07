@@ -42,9 +42,8 @@
   const downloadTokens = new Map(); // assetId -> { token, expiresAt }
 
   function getDisplayTitle(asset) {
-    var t = asset.title || '';
-    var m = t.match(/^\d+\.\s*(.+)$/);
-    return m ? m[1] : t;
+    var t = (asset.title || '').trim();
+    return t.replace(/^\d+\.\s*/, '') || t;
   }
 
   const el = (id) => document.getElementById(id);
@@ -308,22 +307,21 @@
   function renderNav() {
     if (!navPanel) return;
     navPanel.innerHTML = '';
+
+    var allTitle = document.createElement('div');
+    allTitle.className = 'nav-title';
+    allTitle.textContent = 'All';
+    navPanel.appendChild(allTitle);
     var allLink = document.createElement('a');
     allLink.href = '#';
-    allLink.textContent = 'All';
+    allLink.textContent = 'Show all';
     allLink.className = currentNavFilter === null ? 'active' : '';
     allLink.addEventListener('click', function (e) {
       e.preventDefault();
       currentNavFilter = null;
-      navPanel.querySelectorAll('a').forEach(function (l) { l.classList.remove('active'); });
-      allLink.classList.add('active');
+      renderNav();
       renderGallery();
     });
-    allLink.setAttribute('data-nav', 'all');
-    var allTitle = document.createElement('div');
-    allTitle.className = 'nav-title';
-    allTitle.textContent = 'Catalog';
-    navPanel.appendChild(allTitle);
     navPanel.appendChild(allLink);
 
     assets.forEach(function (asset, i) {
@@ -344,14 +342,13 @@
         navPanel.appendChild(title3);
       }
       var a = document.createElement('a');
-      a.href = '#asset-' + encodeURIComponent(asset.id);
+      a.href = '#';
       a.textContent = getDisplayTitle(asset);
       if (currentNavFilter === asset.id) a.classList.add('active');
       a.addEventListener('click', function (e) {
         e.preventDefault();
         currentNavFilter = asset.id;
-        navPanel.querySelectorAll('a').forEach(function (l) { l.classList.remove('active'); });
-        a.classList.add('active');
+        renderNav();
         renderGallery();
       });
       navPanel.appendChild(a);
