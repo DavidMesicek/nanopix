@@ -676,8 +676,10 @@
       if (verified) {
         var expiresAt = Date.now() + 24 * 60 * 60 * 1000;
         setDownloadToken(asset.id, txHash, expiresAt);
-        setPaymentStatus('Payment verified. You can download the file below.', 'success');
+        setPaymentStatus('Payment verified. Redirecting…', 'success');
         renderModalContent(asset);
+        window.location.href = getSiteBase() + 'thank-you.html?asset=' + encodeURIComponent(asset.id);
+        return;
       }
     } catch (e) {
       console.warn('Verify exception:', e);

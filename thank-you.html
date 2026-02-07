@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thank you – NanoPix</title>
+  <link rel="icon" href="logo.png" type="image/png" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .site-title-link { text-decoration: none; color: inherit; }
+    .thank-you-page { max-width: 28rem; margin: 3rem auto; padding: 0 1.5rem; text-align: center; }
+    .thank-you-page h2 { margin: 0 0 0.5rem; font-size: 1.75rem; }
+    .thank-you-page p { margin: 0 0 1.5rem; color: var(--text-muted); }
+    .thank-you-page .purchased { margin-bottom: 1.5rem; padding: 1rem; background: var(--surface); border-radius: var(--radius); font-weight: 500; color: var(--accent); }
+    .thank-you-page .btn-back { display: inline-block; padding: 0.6rem 1.25rem; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); font-size: 1rem; font-weight: 600; text-decoration: none; cursor: pointer; }
+    .thank-you-page .btn-back:hover { background: var(--accent-hover); }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <a href="index.html" class="site-title-link">
+      <h1 class="site-title"><img src="logo.png" alt="" class="site-logo" width="56" height="56" />NanoPix</h1>
+    </a>
+    <p class="site-subtitle">Buy images instantly with POL (Polygon)</p>
+    <div class="header-actions">
+      <a href="index.html" class="btn btn-wallet btn-pol">Back to catalog</a>
+    </div>
+  </header>
+
+  <p class="tagline">Pay once │ Use forever │ Commercial use allowed</p>
+
+  <main class="thank-you-page">
+    <h2>Thank you!</h2>
+    <p>Your payment was successful.</p>
+    <p id="purchasedMsg" class="purchased" style="display: none;"></p>
+    <a href="index.html" class="btn-back">Back to catalog</a>
+  </main>
+
+  <footer class="page-license">
+    <span class="page-license-text">Royalty-Free Commercial License</span>
+  </footer>
+
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var assetId = params.get('asset');
+      if (!assetId) return;
+      var msgEl = document.getElementById('purchasedMsg');
+      if (!msgEl) return;
+      fetch('assets.json?v=2')
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (data) {
+          var list = Array.isArray(data) ? data : (data.assets || data.items || []);
+          var asset = list.find(function (a) { return a.id === assetId; });
+          if (asset) {
+            var title = (asset.title || '').trim().replace(/^\d+\.\s*/, '') || asset.title || assetId;
+            msgEl.textContent = 'You purchased: ' + title;
+            msgEl.style.display = 'block';
+          }
+        })
+        .catch(function () {});
+    })();
+  </script>
+</body>
+</html>
