@@ -1,0 +1,9 @@
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+  <rect x="1.1" y="4.09" width="21.78" height="14.52" rx="2.63" fill="none" stroke="#919191" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+  <g>
+    <rect x="6.53" y="8.36" width="1.26" height="1.26" fill="none" stroke="#919191" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+    <rect x="16.18" y="8.36" width="1.26" height="1.26" fill="none" stroke="#919191" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+    <rect x="6.53" y="13.09" width="1.26" height="1.26" fill="none" stroke="#919191" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+    <rect x="16.18" y="13.09" width="1.26" height="1.26" fill="none" stroke="#919191" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+  </g>
+</svg>

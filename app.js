@@ -48,6 +48,7 @@
   const connectPolBtn = el('connectPolBtn');
   const walletPolInfo = el('walletPolInfo');
   const galleryGrid = el('galleryGrid');
+  const navPanel = el('navPanel');
   const modalOverlay = el('modalOverlay');
   const modalContent = el('modalContent');
   const modalClose = el('modalClose');
@@ -293,7 +294,40 @@
       galleryGrid.innerHTML = '<p class="payment-status error">Could not load catalog. Check assets.json.</p>';
       return;
     }
+    renderNav();
     renderGallery();
+  }
+
+  function renderNav() {
+    if (!navPanel) return;
+    navPanel.innerHTML = '';
+    assets.forEach(function (asset, i) {
+      if (i === 0) {
+        var title = document.createElement('div');
+        title.className = 'nav-title';
+        title.textContent = 'Icon Pack';
+        navPanel.appendChild(title);
+      } else if (i === 1) {
+        var title2 = document.createElement('div');
+        title2.className = 'nav-title';
+        title2.textContent = 'Icons';
+        navPanel.appendChild(title2);
+      } else if (i === 16) {
+        var title3 = document.createElement('div');
+        title3.className = 'nav-title';
+        title3.textContent = 'Images';
+        navPanel.appendChild(title3);
+      }
+      var a = document.createElement('a');
+      a.href = '#asset-' + encodeURIComponent(asset.id);
+      a.textContent = asset.title;
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        var el = document.getElementById('asset-' + asset.id);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      navPanel.appendChild(a);
+    });
   }
 
   function renderGallery() {
@@ -305,6 +339,7 @@
       var priceStr = polAmount != null ? (polAmount.toFixed(4) + ' POL') : '— POL';
       const card = document.createElement('article');
       card.className = 'card';
+      card.id = 'asset-' + asset.id;
       card.innerHTML = `
         <div class="card-image-wrap">
           <img class="card-image" src="${escapeAttr(resolveAssetUrl(asset.thumbUrl || asset.previewUrl || ''))}" alt="${escapeAttr(asset.title)}" loading="lazy" />
